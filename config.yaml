@@ -1,6 +1,6 @@
 baseurl: /
 languageCode: en-us
-title: A Hugo website
+title: Tor Gunston's Personal Site
 theme: hugo-lithium
 googleAnalytics: ''
 disqusShortname: ''
@@ -16,10 +16,16 @@ menu:
   main:
     - name: About
       url: /about/
+      weight: 1
     - name: GitHub
       url: https://github.com/rstudio/blogdown
+      weight: 2
     - name: Twitter
       url: https://twitter.com/rstudio
+      weight: 3
+    - name: LinkedIn
+      url: https://www.linkedin.com/in/tor-gunston-857077165
+      weight: 4
 params:
   MathJaxCDN: //cdnjs.cloudflare.com/ajax/libs
   MathJaxVersion: 2.7.5
