@@ -1,0 +1,13 @@
+---
+title: Current Projects
+author: Tor
+date: '2022-05-01'
+slug: projects
+categories: []
+tags: []
+---
+## Baseball Streak Explorer
+[Streak Explorer](https://shiny.tor-gu.com/streak-explorer) 
+
+## NJ OAG Use Of Force Data Package for R
+[NJOAGUOF](https://github.com/tor-gu/njoaguof/blob/main/README.md)
