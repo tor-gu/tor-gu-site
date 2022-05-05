@@ -11,3 +11,6 @@ tags: []
 
 ## NJ OAG Use Of Force Data Package for R
 [NJOAGUOF](https://github.com/tor-gu/njoaguof/blob/main/README.md)
+
+## NJ OAG Law Enforcement Officer Diversity Data Package for R
+[NJOAGLEOD](https://github.com/tor-gu/njoagleod#readme)
