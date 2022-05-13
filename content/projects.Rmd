@@ -14,3 +14,9 @@ tags: []
 
 ## NJ OAG Law Enforcement Officer Diversity Data Package for R
 [NJOAGLEOD](https://github.com/tor-gu/njoagleod#readme)
+
+## NJ OAG Use Of Force Data Explorer
+[NJOAGUOF Data Explorer](https://bumble.tor-gu.com/njoaguof/)
+
+This is a simple dashboard application to illustrate the use of
+of the [NJOAGUOF](https://github.com/tor-gu/njoaguof/blob/main/README.md) data package.  The source code is [here](https://github.com/tor-gu/njoaguofdash).
