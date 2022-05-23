@@ -9,6 +9,10 @@ tags: []
 ## Baseball Streak Explorer
 [Streak Explorer](https://shiny.tor-gu.com/streak-explorer) 
 
+This is an [R/Shiny](https://shiny.rstudio.com/) application that uses a novel visualization for comparing hot and cold streaks of Major League Baseball teams.
+
+The source code is available [here](https://github.com/tor-gu/streakexplorer).
+
 ## NJ OAG Use Of Force Data Package for R
 [NJOAGUOF](https://github.com/tor-gu/njoaguof/blob/main/README.md)
 
