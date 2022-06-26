@@ -113,7 +113,7 @@ install_github(&quot;tor-gu/njoagleod&quot;)</code></pre>
 <h2>Municipal agencies and census data</h2>
 <div id="building-a-population-and-officer_count-table-by-municipality" class="section level3">
 <h3>Building a population and officer_count table by municipality</h3>
-<p>Lets start by getting municipal-level census data using the <a href="https://walker-data.com/tidycensus/">tidycensus</a> package. <a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a> We will use the <code>municipality</code> table in the <code>njoagleod</code> package for the list of counties. For the moment, we only need the population of each municipality.</p>
+<p>Let’s start by getting municipal-level census data using the <a href="https://walker-data.com/tidycensus/">tidycensus</a> package. <a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a> We will use the <code>municipality</code> table in the <code>njoagleod</code> package for the list of counties. For the moment, we only need the population of each municipality.</p>
 <pre class="r"><code>library(tidyverse)
 library(tidycensus)
 library(njoagleod)
@@ -216,6 +216,20 @@ Atlantic County
 </tr>
 <tr>
 <td style="text-align:left;">
+Somers Point city
+</td>
+<td style="text-align:left;">
+Atlantic County
+</td>
+<td style="text-align:left;">
+3400168430
+</td>
+<td style="text-align:right;">
+10174
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 Absecon city
 </td>
 <td style="text-align:left;">
@@ -228,23 +242,9 @@ Atlantic County
 8818
 </td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Atlantic City city
-</td>
-<td style="text-align:left;">
-Atlantic County
-</td>
-<td style="text-align:left;">
-3400102080
-</td>
-<td style="text-align:right;">
-37743
-</td>
-</tr>
 </tbody>
 </table>
-<p>Now lets get the officer count for each municipal police department and combine it with the census data. Not every municipality has its own police department, and there may be municipal police departments that have are excluded for some reason (for example, because they have not reported their data to the OAG).</p>
+<p>Now let’s get the officer count for each municipal police department and combine it with the census data. Not every municipality has its own police department, and there may be municipal police departments that are excluded for some reason (for example, because they have not reported their data to the OAG).</p>
 <pre class="r"><code># Get the officer count for each agency
 officer_count_pop &lt;- officer %&gt;%
   count(agency_county, agency_name, name = &quot;officer_count&quot;) %&gt;%
@@ -1269,8 +1269,8 @@ ggplot(map_with_values) +
     panel.grid.major = element_line(color = &quot;lightblue&quot;),
     legend.position = &quot;bottom&quot;
   )</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" />
-So, a map of the largest percapita municipal PDs in NJ is a map of the Jersey Shore, plus Hi-Nella.</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>So, a map of the largest percapita municipal PDs in NJ is a map of the Jersey Shore, plus Hi-Nella.</p>
 </div>
 <div id="part-time-residents-and-part-time-officers" class="section level2">
 <h2>Part-time residents and part-time officers</h2>
@@ -1286,8 +1286,8 @@ So, a map of the largest percapita municipal PDs in NJ is a map of the Jersey Sh
 <div id="mantoloking" class="section level4">
 <h4>Mantoloking</h4>
 <p>The <a href="https://en.wikipedia.org/wiki/Mantoloking,_New_Jersey">wikipedia page</a> for Mantoloking gives a good explanation for why this might be: during the summer months, the population swells to approximately <code>5000</code>. For a populuation of <code>5000</code>, nine officers is actually lower than the state average: more than <code>500</code> residents per officer. Indeed, the Mantoloking PD website indicates that the department <a href="https://www.mantoloking.org/police-department/pages/career-information">hires seasonal officers</a> in the summer, and that it has <a href="https://www.mantoloking.org/police-department/pages/history">nine full-time officers</a>.</p>
-<p>Note the contrast with Hi-Nella – both Hi-Nella and Mantoloking employ part-time officers, but part-time officers in Hi-Nella are included in the agency size, while part-time officers in Mantoloking part-time are excluded. It is not clear how most departments have counted their part-time officers. <a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a></p>
-<p>Returning the the shore towns, is clear that many of them have seasonal patterns similar to Mantoloking. For example, <a href="https://en.wikipedia.org/wiki/Deal,_New_Jersey">Deal’s</a> population increases ten-fold in the summer.</p>
+<p>Note the contrast with Hi-Nella – both Hi-Nella and Mantoloking employ part-time officers, but part-time officers in Hi-Nella are included in the agency size, while part-time officers in Mantoloking are excluded. It is not clear how most departments have counted their part-time officers. <a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a></p>
+<p>Returning the the shore towns, it is clear that many of them have seasonal patterns similar to Mantoloking. For example, <a href="https://en.wikipedia.org/wiki/Deal,_New_Jersey">Deal’s</a> population increases ten-fold in the summer.</p>
 </div>
 </div>
 </div>
@@ -1308,8 +1308,8 @@ ggplot(nj_municipality_map) +
     axis.title.x = element_blank(),
     axis.title.y = element_blank()
   )</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="672" />
-We can take a stab at defining the “Jersey Shore” as those municipalities that border any of these regions, excluding the Delaware Bay region <code>3401100000</code>.</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<p>We can take a stab at defining the “Jersey Shore” as those municipalities that border any of these regions, excluding the Delaware Bay region <code>3401100000</code>.</p>
 <pre class="r"><code># Build the jersey shore map
 jersey_shore_water &lt;- water %&gt;% filter(GEOID != &quot;3401100000&quot;)
 jersey_shore_indices &lt;-
@@ -1905,7 +1905,7 @@ Ocean County
 </tr>
 </tbody>
 </table>
-<p>Hi-Nella is the new leader, followed by Far Hills and Lower Alloways Creek. It is not clear if either Far Hills or Lower Alloways Creek is including part part-time officers, like Hi-Nella does. The size of the Lower Alloways Creek PD may be related to the presence of the nuclear power plant. West Wildwood and Ocean Gate should probably be considered part of the Jersey Shore, though they don’t actually border the ocean.</p>
+<p>Hi-Nella is the new leader, followed by Far Hills and Lower Alloways Creek. It is not clear if either Far Hills or Lower Alloways Creek is including part-time officers, like Hi-Nella does. The size of the Lower Alloways Creek PD may be related to the presence of the nuclear power plant. West Wildwood and Ocean Gate should probably be considered part of the Jersey Shore, though they don’t actually border the ocean.</p>
 <p>Geographically, no clear pattern appears, except perhaps that South Jersey is somewhat over-represented:</p>
 <pre class="r"><code># Add the residents_per_officer to the map, excluding shore towns
 map_with_values &lt;-
@@ -1969,6 +1969,7 @@ ggplot(map_with_values) +
 <ol>
 <li id="fn1"><p>The municipal PD officer counts are also available in the <a href="https://ucr.fbi.gov/crime-in-the-u.s/2018/crime-in-the-u.s.-2018/tables/table-78/table-78-state-cuts/new-jersey.xls">FBI Uniform Crime Reports</a>.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
 <li id="fn2"><p>Note that the tidycensus package needs to be supplied with a census API key, which is not shown in the code snippet. See <a href="https://walker-data.com/tidycensus/articles/basic-usage.html">here</a>.<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
-<li id="fn3"><p>The FBI UCF claims that the numbers are for “Full-time Law Enforcement Employees”, and lists 13 as the size of the Hi-Nella PD in 2018. Since Hi-Nella is evidently improperly including part-time officers its report to the FBI, we suspect that the inclusion of part-time officers in the NJ OAG report is also an error, and that most municipalities in the NJ OAG Law Enforcement Officer Diversity data set are including only full-time officers.<a href="#fnref3" class="footnote-back">↩︎</a></p></li>
+<li id="fn3"><p>The FBI UCF claims that the numbers are for “Full-time Law Enforcement Employees”, and lists 13 as the size of the Hi-Nella PD in 2018. Since Hi-Nella is evidently improperly including part-time officers its report to the FBI, we suspect that the inclusion of part-time officers in the NJ OAG report is also an error, and that most municipalities in the NJ OAG Law Enforcement Officer Diversity data set are including only full-time officers.
+According to the <a href="https://www.njoag.gov/policerecruiting/">NJ OAG</a>, all officers in the dataset are full-time.<a href="#fnref3" class="footnote-back">↩︎</a></p></li>
 </ol>
 </div>

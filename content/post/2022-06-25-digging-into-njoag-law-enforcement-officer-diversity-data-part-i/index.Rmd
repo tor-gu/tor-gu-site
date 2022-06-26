@@ -54,7 +54,7 @@ install_github("tor-gu/njoagleod")
 ## Municipal agencies and census data
 
 ### Building a population and officer_count table by municipality
-Lets start by getting municipal-level census data using the [tidycensus](https://walker-data.com/tidycensus/) package. ^[Note that the tidycensus package needs to be supplied with a census API key, which is not shown in the code snippet. See [here](https://walker-data.com/tidycensus/articles/basic-usage.html).]  We will use the `municipality` table in the `njoagleod` package for the list of counties.  For the moment, we only need the population of each municipality.
+Let's start by getting municipal-level census data using the [tidycensus](https://walker-data.com/tidycensus/) package. ^[Note that the tidycensus package needs to be supplied with a census API key, which is not shown in the code snippet. See [here](https://walker-data.com/tidycensus/articles/basic-usage.html).]  We will use the `municipality` table in the `njoagleod` package for the list of counties.  For the moment, we only need the population of each municipality.
 ```{r}
 library(tidyverse)
 library(tidycensus)
@@ -84,7 +84,7 @@ municipality_pop <- counties %>%
 head(municipality_pop) %>% kbl("head(municipality_pop)")
 ```
 
-Now lets get the officer count for each municipal police department and combine it with the census data.  Not every municipality has its own police department, and there may be municipal police departments that have are excluded for some reason (for example, because they have not reported their data to the OAG). 
+Now let's get the officer count for each municipal police department and combine it with the census data.  Not every municipality has its own police department, and there may be municipal police departments that are excluded for some reason (for example, because they have not reported their data to the OAG). 
 ```{r echo=TRUE}
 # Get the officer count for each agency
 officer_count_pop <- officer %>%
@@ -250,6 +250,7 @@ ggplot(map_with_values) +
     legend.position = "bottom"
   )
 ```
+
 So, a map of the largest percapita municipal PDs in NJ is a map of the Jersey Shore, plus Hi-Nella.
 
 ## Part-time residents and part-time officers
@@ -267,9 +268,10 @@ The other fourteen agencies on the list are all on the Jersey Shore.  The most e
 #### Mantoloking
 The [wikipedia page](https://en.wikipedia.org/wiki/Mantoloking,_New_Jersey) for Mantoloking gives a good explanation for why this might be:  during the summer months, the population swells to approximately `5000`. For a populuation of `5000`, nine officers is actually lower than the state average:  more than `500` residents per officer.  Indeed, the Mantoloking PD website indicates that the department [hires seasonal officers](https://www.mantoloking.org/police-department/pages/career-information) in the summer, and that it has [nine full-time officers](https://www.mantoloking.org/police-department/pages/history).
 
-Note the contrast with Hi-Nella -- both Hi-Nella and Mantoloking employ part-time officers, but part-time officers in Hi-Nella are included in the agency size, while part-time officers in Mantoloking part-time are excluded.  It is not clear how most departments have counted their part-time officers. ^[The FBI UCF claims that the numbers are for "Full-time Law Enforcement Employees", and lists 13 as the size of the Hi-Nella PD in 2018. Since Hi-Nella is evidently improperly including part-time officers its report to the FBI, we suspect that the inclusion of part-time officers in the NJ OAG report is also an error, and that most municipalities in the NJ OAG Law Enforcement Officer Diversity data set are including only full-time officers.]
+Note the contrast with Hi-Nella -- both Hi-Nella and Mantoloking employ part-time officers, but part-time officers in Hi-Nella are included in the agency size, while part-time officers in Mantoloking are excluded.  It is not clear how most departments have counted their part-time officers. ^[The FBI UCF claims that the numbers are for "Full-time Law Enforcement Employees", and lists 13 as the size of the Hi-Nella PD in 2018. Since Hi-Nella is evidently improperly including part-time officers its report to the FBI, we suspect that the inclusion of part-time officers in the NJ OAG report is also an error, and that most municipalities in the NJ OAG Law Enforcement Officer Diversity data set are including only full-time officers.
+According to the [NJ OAG](https://www.njoag.gov/policerecruiting/), all officers in the dataset are full-time.]
 
-Returning the the shore towns, is clear that many of them have seasonal patterns similar to Mantoloking.  For example, [Deal's](https://en.wikipedia.org/wiki/Deal,_New_Jersey) population increases ten-fold in the summer.
+Returning the the shore towns, it is clear that many of them have seasonal patterns similar to Mantoloking.  For example, [Deal's](https://en.wikipedia.org/wiki/Deal,_New_Jersey) population increases ten-fold in the summer.
 
 ## Isolating the shore towns
 The NJ map includes several landless non-municipal county subdivisions off the coast, which we can identify by filtering on `ALAND == 0`.
@@ -289,6 +291,7 @@ ggplot(nj_municipality_map) +
     axis.title.y = element_blank()
   )
 ```
+
 We can take a stab at defining the "Jersey Shore" as those municipalities that border any of these regions, excluding the Delaware Bay region `3401100000`.  
 ```{r warning=FALSE, fig.height=10}
 # Build the jersey shore map
@@ -383,7 +386,7 @@ top_fifteen_core %>%
   kbl("top_fifteen_core (largest PDs relative to population, exluding small shore towns)")
 ```
 
-Hi-Nella is the new leader, followed by Far Hills and Lower Alloways Creek. It is not clear if either Far Hills or Lower Alloways Creek is including part part-time officers, like Hi-Nella does. The size of the Lower Alloways Creek PD may be related to the presence of the nuclear power plant. West Wildwood and Ocean Gate should probably be considered part of the Jersey Shore, though they don't actually border the ocean.
+Hi-Nella is the new leader, followed by Far Hills and Lower Alloways Creek. It is not clear if either Far Hills or Lower Alloways Creek is including part-time officers, like Hi-Nella does. The size of the Lower Alloways Creek PD may be related to the presence of the nuclear power plant. West Wildwood and Ocean Gate should probably be considered part of the Jersey Shore, though they don't actually border the ocean.
 
 Geographically, no clear pattern appears, except perhaps that South Jersey is somewhat over-represented:
 
