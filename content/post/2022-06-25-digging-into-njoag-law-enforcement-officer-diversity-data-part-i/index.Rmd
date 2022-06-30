@@ -12,6 +12,8 @@ tags:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(kableExtra.html.bsTable = TRUE)
+options(digits=2)
 ```
 
 ## NJOAG Use of Force and Law Enforcement Officer Diversity data sets
@@ -25,11 +27,13 @@ I'd like to start digging into this data to see what it shows. I'll start with t
 In this post, I'll be using the following packages.
 ```{r echo=FALSE, message=FALSE}
 library(tidyverse)
+library(kableExtra)
 kbl <- function(tbl, caption) {
   knitr::kable(tbl,
                caption = caption,
                format = "html",
-               table.attr = "class=\"kable\"")
+               table.attr = "class=\"kable\"") %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
 }
 pkgkbl <- function(packages) {
   packages %>% map(packageDescription) %>%

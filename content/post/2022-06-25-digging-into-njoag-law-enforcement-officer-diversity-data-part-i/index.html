@@ -9,6 +9,10 @@ tags:
   - NJOAGLEOD
 ---
 
+<script src="{{< blogdown/postref >}}index_files/kePrint/kePrint.js"></script>
+<link href="{{< blogdown/postref >}}index_files/lightable/lightable.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/bsTable/bootstrapTable.min.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/bsTable/bootstrapTable.js"></script>
 
 
 <div id="njoag-use-of-force-and-law-enforcement-officer-diversity-data-sets" class="section level2">
@@ -18,7 +22,7 @@ tags:
 <div id="packages-used-in-this-post" class="section level3">
 <h3>Packages used in this post</h3>
 In this post, I’ll be using the following packages.
-<table class="kable">
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
 <th style="text-align:left;">
@@ -64,7 +68,7 @@ Load US Census Boundary and Attribute Data as ‘tidyverse’ and
 ‘sf’-Ready Data Frames
 </td>
 <td style="text-align:left;">
-1.2.1
+1.2.2
 </td>
 </tr>
 <tr>
@@ -75,7 +79,7 @@ tigris
 Load Census TIGER/Line Shapefiles
 </td>
 <td style="text-align:left;">
-1.6
+1.6.1
 </td>
 </tr>
 <tr>
@@ -137,7 +141,7 @@ municipality_pop &lt;- counties %&gt;%
   ) %&gt;%
   rename(population=value) %&gt;%
   select(-variable, -state)</code></pre>
-<table class="kable">
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <span id="tab:unnamed-chunk-4">Table 1: </span>head(municipality_pop)
 </caption>
@@ -255,7 +259,7 @@ officer_count_pop &lt;- officer %&gt;%
             by = c(&quot;agency_county&quot; = &quot;county&quot;, &quot;municipality&quot;)) %&gt;%
   select(GEOID, agency_name, officer_count) %&gt;%
   left_join(municipality_pop, by = &quot;GEOID&quot;)</code></pre>
-<table class="kable">
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <span id="tab:unnamed-chunk-6">Table 2: </span>head(officer_count_pop)
 </caption>
@@ -411,10 +415,10 @@ Atlantic County
 <p>Statewide, the municipal agencies for which we have data cover nearly 93% of the population of New Jersey. In all, there are about 408 residents per municipal police officer in these municipalities.</p>
 <pre class="r"><code># We cover nearly 93% of the population of NJ
 sum(officer_count_pop$population) / sum(municipality_pop$population)</code></pre>
-<pre><code>## [1] 0.9276362</code></pre>
+<pre><code>## [1] 0.93</code></pre>
 <pre class="r"><code># About 408 residents per municipal police officer
 sum(officer_count_pop$population) / sum(officer_count_pop$officer_count)</code></pre>
-<pre><code>## [1] 407.9133</code></pre>
+<pre><code>## [1] 408</code></pre>
 <p>At the county level, the coverage varies from from about 58% of the population (Salem county) up to 100% (Hudson and Passaic), and the number of residents per officer ranges from 511 (Somerset) to 196 (Cape May). Note that in Cape May, our data covers only 73% of the population.</p>
 <pre class="r"><code># Get the population for each municipality that is &#39;missed&#39; and summarize by
 # county
@@ -440,7 +444,7 @@ officer_count_pop_by_county &lt;- officer_count_pop %&gt;%
             population = sum(population)) %&gt;%
   mutate(resident_per_officer = population / officer_count) %&gt;%
   left_join(coverage, by = &quot;county&quot;)</code></pre>
-<table class="kable">
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <span id="tab:unnamed-chunk-9">Table 3: </span>officer_pop_by_county
 </caption>
@@ -478,13 +482,13 @@ Atlantic County
 244289
 </td>
 <td style="text-align:right;">
-301.9642
+302
 </td>
 <td style="text-align:right;">
 19381
 </td>
 <td style="text-align:right;">
-0.9264952
+0.93
 </td>
 </tr>
 <tr>
@@ -498,13 +502,13 @@ Bergen County
 923035
 </td>
 <td style="text-align:right;">
-425.3618
+425
 </td>
 <td style="text-align:right;">
 9167
 </td>
 <td style="text-align:right;">
-0.9901663
+0.99
 </td>
 </tr>
 <tr>
@@ -518,13 +522,13 @@ Burlington County
 406464
 </td>
 <td style="text-align:right;">
-482.7363
+483
 </td>
 <td style="text-align:right;">
 38885
 </td>
 <td style="text-align:right;">
-0.9126865
+0.91
 </td>
 </tr>
 <tr>
@@ -538,13 +542,13 @@ Camden County
 413077
 </td>
 <td style="text-align:right;">
-435.2761
+435
 </td>
 <td style="text-align:right;">
 93394
 </td>
 <td style="text-align:right;">
-0.8155985
+0.82
 </td>
 </tr>
 <tr>
@@ -558,13 +562,13 @@ Cape May County
 66866
 </td>
 <td style="text-align:right;">
-196.0880
+196
 </td>
 <td style="text-align:right;">
 25173
 </td>
 <td style="text-align:right;">
-0.7264964
+0.73
 </td>
 </tr>
 <tr>
@@ -578,13 +582,13 @@ Cumberland County
 110990
 </td>
 <td style="text-align:right;">
-388.0769
+388
 </td>
 <td style="text-align:right;">
 38537
 </td>
 <td style="text-align:right;">
-0.7422740
+0.74
 </td>
 </tr>
 <tr>
@@ -598,13 +602,13 @@ Essex County
 762478
 </td>
 <td style="text-align:right;">
-319.6973
+320
 </td>
 <td style="text-align:right;">
 36497
 </td>
 <td style="text-align:right;">
-0.9543202
+0.95
 </td>
 </tr>
 <tr>
@@ -618,13 +622,13 @@ Gloucester County
 245192
 </td>
 <td style="text-align:right;">
-453.2200
+453
 </td>
 <td style="text-align:right;">
 46444
 </td>
 <td style="text-align:right;">
-0.8407467
+0.84
 </td>
 </tr>
 <tr>
@@ -638,13 +642,13 @@ Hudson County
 672391
 </td>
 <td style="text-align:right;">
-325.2980
+325
 </td>
 <td style="text-align:right;">
 0
 </td>
 <td style="text-align:right;">
-1.0000000
+1.00
 </td>
 </tr>
 <tr>
@@ -658,13 +662,13 @@ Hunterdon County
 94252
 </td>
 <td style="text-align:right;">
-462.0196
+462
 </td>
 <td style="text-align:right;">
 30119
 </td>
 <td style="text-align:right;">
-0.7578294
+0.76
 </td>
 </tr>
 <tr>
@@ -678,13 +682,13 @@ Mercer County
 350981
 </td>
 <td style="text-align:right;">
-464.8755
+465
 </td>
 <td style="text-align:right;">
 16449
 </td>
 <td style="text-align:right;">
-0.9552323
+0.96
 </td>
 </tr>
 <tr>
@@ -698,13 +702,13 @@ Middlesex County
 757317
 </td>
 <td style="text-align:right;">
-496.9272
+497
 </td>
 <td style="text-align:right;">
 67745
 </td>
 <td style="text-align:right;">
-0.9178910
+0.92
 </td>
 </tr>
 <tr>
@@ -718,13 +722,13 @@ Monmouth County
 578260
 </td>
 <td style="text-align:right;">
-383.7160
+384
 </td>
 <td style="text-align:right;">
 40535
 </td>
 <td style="text-align:right;">
-0.9344937
+0.93
 </td>
 </tr>
 <tr>
@@ -738,13 +742,13 @@ Morris County
 448845
 </td>
 <td style="text-align:right;">
-456.6073
+457
 </td>
 <td style="text-align:right;">
 43000
 </td>
 <td style="text-align:right;">
-0.9125741
+0.91
 </td>
 </tr>
 <tr>
@@ -758,13 +762,13 @@ Ocean County
 604996
 </td>
 <td style="text-align:right;">
-479.7748
+480
 </td>
 <td style="text-align:right;">
 2190
 </td>
 <td style="text-align:right;">
-0.9963932
+1.00
 </td>
 </tr>
 <tr>
@@ -778,13 +782,13 @@ Passaic County
 501826
 </td>
 <td style="text-align:right;">
-455.7911
+456
 </td>
 <td style="text-align:right;">
 0
 </td>
 <td style="text-align:right;">
-1.0000000
+1.00
 </td>
 </tr>
 <tr>
@@ -798,13 +802,13 @@ Salem County
 35971
 </td>
 <td style="text-align:right;">
-339.3491
+339
 </td>
 <td style="text-align:right;">
 26414
 </td>
 <td style="text-align:right;">
-0.5765969
+0.58
 </td>
 </tr>
 <tr>
@@ -818,13 +822,13 @@ Somerset County
 320092
 </td>
 <td style="text-align:right;">
-511.3291
+511
 </td>
 <td style="text-align:right;">
 8842
 </td>
 <td style="text-align:right;">
-0.9731192
+0.97
 </td>
 </tr>
 <tr>
@@ -838,13 +842,13 @@ Sussex County
 97770
 </td>
 <td style="text-align:right;">
-440.4054
+440
 </td>
 <td style="text-align:right;">
 42718
 </td>
 <td style="text-align:right;">
-0.6959313
+0.70
 </td>
 </tr>
 <tr>
@@ -858,13 +862,13 @@ Union County
 542753
 </td>
 <td style="text-align:right;">
-395.5926
+396
 </td>
 <td style="text-align:right;">
 13588
 </td>
 <td style="text-align:right;">
-0.9755761
+0.98
 </td>
 </tr>
 <tr>
@@ -878,13 +882,13 @@ Warren County
 61596
 </td>
 <td style="text-align:right;">
-416.1892
+416
 </td>
 <td style="text-align:right;">
 43671
 </td>
 <td style="text-align:right;">
-0.5851406
+0.59
 </td>
 </tr>
 </tbody>
@@ -897,9 +901,9 @@ lm(resident_per_officer ~ coverage,
    weights = population) %&gt;%
   summary() %&gt;%
   magrittr::use_series(&quot;coefficients&quot;)</code></pre>
-<pre><code>##              Estimate Std. Error     t value   Pr(&gt;|t|)
-## (Intercept) 429.88826   184.1959  2.33386393 0.03073777
-## coverage    -10.59814   196.2501 -0.05400322 0.95749639</code></pre>
+<pre><code>##             Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept)      430        184   2.334    0.031
+## coverage         -11        196  -0.054    0.957</code></pre>
 <pre class="r"><code># Plot number of residents per officer by coverage
 outliers &lt;- officer_count_pop_by_county %&gt;%
   filter(
@@ -934,7 +938,7 @@ officer_count_pop_by_county %&gt;%
          residents_per_officer,
          officer_count,
          population)</code></pre>
-<table class="kable">
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <span id="tab:unnamed-chunk-12">Table 4: </span>top_fifteen (largest PDs relative to population)
 </caption>
@@ -966,7 +970,7 @@ Mantoloking Boro PD
 Ocean County
 </td>
 <td style="text-align:right;">
-27.66667
+28
 </td>
 <td style="text-align:right;">
 9
@@ -983,7 +987,7 @@ Deal PD
 Monmouth County
 </td>
 <td style="text-align:right;">
-34.23810
+34
 </td>
 <td style="text-align:right;">
 21
@@ -1000,7 +1004,7 @@ Harvey Cedars Boro PD
 Ocean County
 </td>
 <td style="text-align:right;">
-38.33333
+38
 </td>
 <td style="text-align:right;">
 9
@@ -1017,7 +1021,7 @@ Stone Harbor Boro PD
 Cape May County
 </td>
 <td style="text-align:right;">
-47.64706
+48
 </td>
 <td style="text-align:right;">
 17
@@ -1034,7 +1038,7 @@ Allenhurst PD
 Monmouth County
 </td>
 <td style="text-align:right;">
-53.66667
+54
 </td>
 <td style="text-align:right;">
 9
@@ -1051,7 +1055,7 @@ Avalon Boro PD
 Cape May County
 </td>
 <td style="text-align:right;">
-56.18182
+56
 </td>
 <td style="text-align:right;">
 22
@@ -1068,7 +1072,7 @@ Longport PD
 Atlantic County
 </td>
 <td style="text-align:right;">
-60.78571
+61
 </td>
 <td style="text-align:right;">
 14
@@ -1085,7 +1089,7 @@ Hi-Nella PD
 Camden County
 </td>
 <td style="text-align:right;">
-78.00000
+78
 </td>
 <td style="text-align:right;">
 11
@@ -1102,7 +1106,7 @@ Sea Isle City PD
 Cape May County
 </td>
 <td style="text-align:right;">
-84.54167
+85
 </td>
 <td style="text-align:right;">
 24
@@ -1119,7 +1123,7 @@ Lavallette PD
 Ocean County
 </td>
 <td style="text-align:right;">
-84.81818
+85
 </td>
 <td style="text-align:right;">
 22
@@ -1136,7 +1140,7 @@ Long Beach Twp PD
 Ocean County
 </td>
 <td style="text-align:right;">
-87.74286
+88
 </td>
 <td style="text-align:right;">
 35
@@ -1153,7 +1157,7 @@ Ship Bottom Boro PD
 Ocean County
 </td>
 <td style="text-align:right;">
-88.69231
+89
 </td>
 <td style="text-align:right;">
 13
@@ -1170,7 +1174,7 @@ Beach Haven PD
 Ocean County
 </td>
 <td style="text-align:right;">
-92.69231
+93
 </td>
 <td style="text-align:right;">
 13
@@ -1187,7 +1191,7 @@ Bayhead Boro PD
 Ocean County
 </td>
 <td style="text-align:right;">
-108.55556
+109
 </td>
 <td style="text-align:right;">
 9
@@ -1204,7 +1208,7 @@ Surf City PD
 Ocean County
 </td>
 <td style="text-align:right;">
-109.00000
+109
 </td>
 <td style="text-align:right;">
 11
@@ -1339,7 +1343,7 @@ ggplot(jersey_shore) + geom_sf() +
 Now we can add a flag, <code>shore_town</code>, to the <code>officer_count_pop</code> table:</p>
 <pre class="r"><code>officer_count_pop &lt;- officer_count_pop %&gt;% 
   mutate(shore_town=GEOID %in% jersey_shore$GEOID)</code></pre>
-<table class="kable">
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <span id="tab:unnamed-chunk-18">Table 5: </span>head(officer_count_pop) (with shore_town flag)
 </caption>
@@ -1392,7 +1396,7 @@ Atlantic County
 8818
 </td>
 <td style="text-align:right;">
-304.0690
+304
 </td>
 <td style="text-align:left;">
 FALSE
@@ -1418,7 +1422,7 @@ Atlantic County
 37743
 </td>
 <td style="text-align:right;">
-146.8599
+147
 </td>
 <td style="text-align:left;">
 TRUE
@@ -1444,7 +1448,7 @@ Atlantic County
 8650
 </td>
 <td style="text-align:right;">
-247.1429
+247
 </td>
 <td style="text-align:left;">
 TRUE
@@ -1470,7 +1474,7 @@ Atlantic County
 4052
 </td>
 <td style="text-align:right;">
-238.3529
+238
 </td>
 <td style="text-align:left;">
 FALSE
@@ -1496,7 +1500,7 @@ Atlantic County
 42249
 </td>
 <td style="text-align:right;">
-459.2283
+459
 </td>
 <td style="text-align:left;">
 FALSE
@@ -1522,7 +1526,7 @@ Atlantic County
 35618
 </td>
 <td style="text-align:right;">
-508.8286
+509
 </td>
 <td style="text-align:left;">
 TRUE
@@ -1562,7 +1566,7 @@ officer_count_pop %&gt;%
   summarise(officer_count = sum(officer_count),
             population = sum(population)) %&gt;%
   mutate(res_per_officer = population / officer_count)</code></pre>
-<table class="kable">
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <span id="tab:unnamed-chunk-21">Table 6: </span>shore_vs_non_shore
 </caption>
@@ -1594,7 +1598,7 @@ FALSE
 8187311
 </td>
 <td style="text-align:right;">
-414.9466
+415
 </td>
 </tr>
 <tr>
@@ -1608,7 +1612,7 @@ TRUE
 52130
 </td>
 <td style="text-align:right;">
-111.3889
+111
 </td>
 </tr>
 </tbody>
@@ -1624,7 +1628,7 @@ top_fifteen_core &lt;- officer_count_pop_core %&gt;%
          residents_per_officer,
          officer_count,
          population)</code></pre>
-<table class="kable">
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <span id="tab:unnamed-chunk-23">Table 7: </span>top_fifteen_core (largest PDs relative to population, exluding small shore towns)
 </caption>
@@ -1656,7 +1660,7 @@ Hi-Nella PD
 Camden County
 </td>
 <td style="text-align:right;">
-78.0000
+78
 </td>
 <td style="text-align:right;">
 11
@@ -1673,7 +1677,7 @@ Far Hills PD
 Somerset County
 </td>
 <td style="text-align:right;">
-112.8750
+113
 </td>
 <td style="text-align:right;">
 8
@@ -1690,7 +1694,7 @@ Lower Alloways Creek Twp PD
 Salem County
 </td>
 <td style="text-align:right;">
-119.4286
+119
 </td>
 <td style="text-align:right;">
 14
@@ -1707,7 +1711,7 @@ South Hackensack PD
 Bergen County
 </td>
 <td style="text-align:right;">
-121.7500
+122
 </td>
 <td style="text-align:right;">
 20
@@ -1724,7 +1728,7 @@ Moonachie PD
 Bergen County
 </td>
 <td style="text-align:right;">
-128.6667
+129
 </td>
 <td style="text-align:right;">
 21
@@ -1741,7 +1745,7 @@ Chesilhurst PD
 Camden County
 </td>
 <td style="text-align:right;">
-134.8333
+135
 </td>
 <td style="text-align:right;">
 12
@@ -1758,7 +1762,7 @@ West Wildwood Boro PD
 Cape May County
 </td>
 <td style="text-align:right;">
-137.5000
+138
 </td>
 <td style="text-align:right;">
 4
@@ -1775,7 +1779,7 @@ Fairfield PD
 Essex County
 </td>
 <td style="text-align:right;">
-143.7308
+144
 </td>
 <td style="text-align:right;">
 52
@@ -1792,7 +1796,7 @@ Atlantic City PD
 Atlantic County
 </td>
 <td style="text-align:right;">
-146.8599
+147
 </td>
 <td style="text-align:right;">
 257
@@ -1809,7 +1813,7 @@ Pemberton Boro PD
 Burlington County
 </td>
 <td style="text-align:right;">
-147.1111
+147
 </td>
 <td style="text-align:right;">
 9
@@ -1826,7 +1830,7 @@ Alpine PD
 Bergen County
 </td>
 <td style="text-align:right;">
-153.6667
+154
 </td>
 <td style="text-align:right;">
 12
@@ -1843,7 +1847,7 @@ Essex Fells PD
 Essex County
 </td>
 <td style="text-align:right;">
-160.6154
+161
 </td>
 <td style="text-align:right;">
 13
@@ -1860,7 +1864,7 @@ Ocean City PD
 Cape May County
 </td>
 <td style="text-align:right;">
-161.3382
+161
 </td>
 <td style="text-align:right;">
 68
@@ -1877,7 +1881,7 @@ Winfield PD
 Union County
 </td>
 <td style="text-align:right;">
-167.0000
+167
 </td>
 <td style="text-align:right;">
 9
@@ -1894,7 +1898,7 @@ Oceangate Boro PD
 Ocean County
 </td>
 <td style="text-align:right;">
-169.5833
+170
 </td>
 <td style="text-align:right;">
 12
