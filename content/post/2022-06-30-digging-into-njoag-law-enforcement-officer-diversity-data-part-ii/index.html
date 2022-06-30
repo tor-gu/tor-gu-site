@@ -1,0 +1,1706 @@
+---
+title: "Digging into NJOAG Law Enforcement Officer Diversity data - Part II"
+author: "Tor"
+date: '2022-06-30'
+slug: digging-into-njoag-law-enforcement-officer-diversity-data-part-ii
+tags:
+- R
+- NJOAGLEOD
+- NJOAGUOF
+subtitle: Assembling a combined table
+---
+
+<script src="{{< blogdown/postref >}}index_files/kePrint/kePrint.js"></script>
+<link href="{{< blogdown/postref >}}index_files/lightable/lightable.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/bsTable/bootstrapTable.min.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/bsTable/bootstrapTable.js"></script>
+
+
+<p>This is Part II of a series exploring the Law Enforcement Officer Diversity dataset released by the NJ OAG. Part I is <a href="/2022/06/25/digging-into-njoag-law-enforcement-officer-diversity-data-part-i/">here</a>.</p>
+<p>The target of this post is to assemble a large <code>combined_table</code> with each row representing a municipal police department, containing data from the NJ OAG Use Of Force and Law Enforcement Officer Diversity datasets, plus demographic and geographic data from the US Census. The combined table will look like this:</p>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-1">Table 1: </span>combined_table – All Fields
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Field
+</th>
+<th style="text-align:left;">
+Description
+</th>
+<th style="text-align:left;">
+Year
+</th>
+<th style="text-align:left;">
+Source
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+GEOID
+</td>
+<td style="text-align:left;">
+US Census Geographical Identifier
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+US Census
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_count
+</td>
+<td style="text-align:left;">
+Number of full-time officers
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_mean_age
+</td>
+<td style="text-align:left;">
+Mean age of officers
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_male
+</td>
+<td style="text-align:left;">
+Proportion of officers that are male
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_white
+</td>
+<td style="text-align:left;">
+Proportion of officers that are White
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_black
+</td>
+<td style="text-align:left;">
+Proportion of officers that are Black
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_asian
+</td>
+<td style="text-align:left;">
+Proportion of officers that are Asian
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_hispanic_or_latino
+</td>
+<td style="text-align:left;">
+Proportion of officers that are Hispanic or Latino
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_race_other
+</td>
+<td style="text-align:left;">
+Proportion of officers of other races
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_two_or_more_races
+</td>
+<td style="text-align:left;">
+Proportion of officers of two or more races
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_race_na
+</td>
+<td style="text-align:left;">
+Proportion of officers whose race is not available
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+population
+</td>
+<td style="text-align:left;">
+Population
+</td>
+<td style="text-align:left;">
+2019
+</td>
+<td style="text-align:left;">
+US Census estimates
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+density
+</td>
+<td style="text-align:left;">
+Population density
+</td>
+<td style="text-align:left;">
+2019
+</td>
+<td style="text-align:left;">
+US Census estimates
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_white
+</td>
+<td style="text-align:left;">
+Proportion White (P003002 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_black
+</td>
+<td style="text-align:left;">
+Proportion Black or African American (P003003 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_native_american
+</td>
+<td style="text-align:left;">
+Proportion American Indian or Alaska Native (P003004 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_asian
+</td>
+<td style="text-align:left;">
+Proportion Asian (P003005 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_pacific_islander
+</td>
+<td style="text-align:left;">
+Proportion Native Hawaiian and Other Pacific Islander (P003006 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_other_races
+</td>
+<td style="text-align:left;">
+Proportion other races (P003007 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_two_or_more_races
+</td>
+<td style="text-align:left;">
+Proportion two or more races (P003008 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_non_hispanic_or_latino
+</td>
+<td style="text-align:left;">
+Proportion Non-Hispanic or Latino (P004002 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_hispanic_or_latino
+</td>
+<td style="text-align:left;">
+Proportion Hispanic or Latino (P004003 / P001001)
+</td>
+<td style="text-align:left;">
+2010
+</td>
+<td style="text-align:left;">
+US Census Decennial, SF1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+household_median_income
+</td>
+<td style="text-align:left;">
+Household median income (B19013_001)
+</td>
+<td style="text-align:left;">
+2015-2019
+</td>
+<td style="text-align:left;">
+US Census ACS
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+shore_town
+</td>
+<td style="text-align:left;">
+<code>TRUE</code> if municipality shares a border with the Atlantic Ocean
+</td>
+<td style="text-align:left;">
+2020
+</td>
+<td style="text-align:left;">
+US Census
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+incident_count
+</td>
+<td style="text-align:left;">
+Number of use of force incidents
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Use of Force Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+partial year
+</td>
+<td style="text-align:left;">
+Estimated portion of year that use of force incidents were reported
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Use of Force Dataset
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+incident_rate_est
+</td>
+<td style="text-align:left;">
+Estimate of yearly rate of incidents of use of force
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+NJ OAG Use of Force Dataset
+</td>
+</tr>
+</tbody>
+</table>
+<div id="packages-used-in-this-post" class="section level3">
+<h3>Packages used in this post</h3>
+In this post, I’ll be using the following packages.
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Package
+</th>
+<th style="text-align:left;">
+Title
+</th>
+<th style="text-align:left;">
+Version
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+njoagleod
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity data package
+</td>
+<td style="text-align:left;">
+1.1.3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+njoaguof
+</td>
+<td style="text-align:left;">
+NJ OAG Use of Force data package
+</td>
+<td style="text-align:left;">
+1.4.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tidyverse
+</td>
+<td style="text-align:left;">
+Easily Install and Load the ‘Tidyverse’
+</td>
+<td style="text-align:left;">
+1.3.1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lubridate
+</td>
+<td style="text-align:left;">
+Make Dealing with Dates a Little Easier
+</td>
+<td style="text-align:left;">
+1.8.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+scales
+</td>
+<td style="text-align:left;">
+Scale Functions for Visualization
+</td>
+<td style="text-align:left;">
+1.2.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tidycensus
+</td>
+<td style="text-align:left;">
+Load US Census Boundary and Attribute Data as ‘tidyverse’ and
+‘sf’-Ready Data Frames
+</td>
+<td style="text-align:left;">
+1.2.2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tigris
+</td>
+<td style="text-align:left;">
+Load Census TIGER/Line Shapefiles
+</td>
+<td style="text-align:left;">
+1.6.1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sf
+</td>
+<td style="text-align:left;">
+Simple Features for R
+</td>
+<td style="text-align:left;">
+1.0-7
+</td>
+</tr>
+</tbody>
+</table>
+<p>This is not a tutorial for using these packages, but all the R code used to generate the plots and tables will be included.</p>
+<p>The OAG packages can be installed from github:</p>
+<pre class="r"><code>install_github(&quot;tor-gu/njoaguof&quot;)
+install_github(&quot;tor-gu/njoagleod&quot;)</code></pre>
+</div>
+<div id="gathering-the-data" class="section level2">
+<h2>Gathering the data</h2>
+<p>We are going to gather and combine data from several sources:</p>
+<ul>
+<li>2021 municipal agency officer count and diversity data from <code>njoagleod</code></li>
+<li>2021 use of force incident counts from <code>njoaguof</code></li>
+<li>2019 population estimates from the US Census</li>
+<li>Race and ethnicity data from the 2010 US Census</li>
+<li>Household median income from the 2015-2019 ACS</li>
+<li>A “jersey shore” flag, derived from shapefiles from the US Census (see <a href="/2022/06/25/digging-into-njoag-law-enforcement-officer-diversity-data-part-i/">Part I</a>)</li>
+</ul>
+<div id="municipal-agency-diversity-data" class="section level3">
+<h3>Municipal agency diversity data</h3>
+<p>We start by getting a summary of the officer diversity data in <code>njoagleod</code>.</p>
+<pre class="r"><code>library(tidyverse)
+library(njoagleod)
+officer_info &lt;- officer %&gt;% group_by(agency_name, agency_county) %&gt;%
+  summarize(
+    officer_count = n(),
+    officer_r_male = sum(officer_gender == &quot;Male&quot;, na.rm = TRUE) / n(),
+    officer_mean_age = mean(officer_age, na.rm = TRUE),
+    officer_r_race_na = sum(is.na(officer_race) / n()),
+    officer_r_white = sum(officer_race == &quot;White&quot;, na.rm = TRUE) / n(),
+    officer_r_black = sum(officer_race == &quot;Black&quot;, na.rm = TRUE) / n(),
+    officer_r_asian = sum(officer_race == &quot;Asian&quot;, na.rm = TRUE) / n(),
+    officer_r_hispanic_or_latino =
+      sum(officer_race == &quot;Hispanic&quot;, na.rm = TRUE) / n(),
+    officer_r_race_other = 1 - sum(c_across(
+      officer_r_race_na:officer_r_hispanic_or_latino
+    )),
+    .groups = &quot;drop&quot;
+  ) %&gt;%
+  left_join(agency, by = c(&quot;agency_name&quot;, &quot;agency_county&quot;)) %&gt;%
+  filter(!is.na(municipality)) %&gt;%
+  left_join(municipality, by = c(&quot;agency_county&quot;=&quot;county&quot;, &quot;municipality&quot;)) %&gt;%
+  select(
+    GEOID,
+    officer_count,
+    officer_mean_age,
+    officer_r_male,
+    officer_r_white:officer_r_hispanic_or_latino,
+    officer_r_race_other,
+    officer_r_race_na
+  )</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-5">Table 2: </span>head(officer_info) (first several columns)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+GEOID
+</th>
+<th style="text-align:right;">
+officer_count
+</th>
+<th style="text-align:right;">
+officer_mean_age
+</th>
+<th style="text-align:right;">
+officer_r_male
+</th>
+<th style="text-align:right;">
+officer_r_white
+</th>
+<th style="text-align:right;">
+officer_r_black
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3402500070
+</td>
+<td style="text-align:right;">
+41
+</td>
+<td style="text-align:right;">
+37
+</td>
+<td style="text-align:right;">
+0.95
+</td>
+<td style="text-align:right;">
+0.88
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400100100
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+38
+</td>
+<td style="text-align:right;">
+0.93
+</td>
+<td style="text-align:right;">
+0.93
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400300700
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+43
+</td>
+<td style="text-align:right;">
+0.87
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3402500730
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+40
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3402500760
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+35
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400301090
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:right;">
+42
+</td>
+<td style="text-align:right;">
+0.75
+</td>
+<td style="text-align:right;">
+0.92
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+</tr>
+</tbody>
+</table>
+<p>Note that the municipalites are identified here by US Census <code>GEOID</code>. We will
+repeat this pattern for each of the tables, joining them together at the end
+using the <code>GEOID</code> as the key.</p>
+</div>
+<div id="jersey-shore-flag" class="section level3">
+<h3>Jersey Shore flag</h3>
+<p>We create a table with a <code>shore_town</code> flag, as in
+<a href="/2022/06/25/digging-into-njoag-law-enforcement-officer-diversity-data-part-i/">Part I</a>. The flag is <code>TRUE</code> if the municipality has a border with the Atlantic
+Ocean.</p>
+<pre class="r"><code>library(tigris)
+library(sf)
+options(tigris_use_cache = TRUE)
+
+counties &lt;- municipality %&gt;% pull(county) %&gt;% unique() %&gt;% sort()
+
+# Get the map from tigris
+nj_municipality_map &lt;- counties %&gt;%
+  map_df(~ county_subdivisions(&quot;NJ&quot;, county = ., class = &quot;sf&quot;))
+
+# Get the towns that border the Atlantic Ocean
+jersey_shore_water &lt;- nj_municipality_map %&gt;%
+  filter(ALAND == 0) %&gt;%
+  filter(GEOID != &quot;3401100000&quot;)
+jersey_shore_indices &lt;- st_intersects(jersey_shore_water,
+                                      nj_municipality_map) %&gt;%
+  unlist() %&gt;% unique()
+
+# Now build a table of shore towns
+municipality_shore &lt;- nj_municipality_map %&gt;%
+  as_tibble() %&gt;%
+  mutate(shore_town = FALSE)
+municipality_shore$shore_town[jersey_shore_indices] = TRUE
+municipality_shore &lt;- municipality_shore %&gt;%
+  filter(ALAND != 0) %&gt;%
+  select(GEOID, shore_town)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-7">Table 3: </span>head(municipality_shore)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+GEOID
+</th>
+<th style="text-align:left;">
+shore_town
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3400107810
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400120290
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400129430
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400149410
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400160600
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400168430
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="population-estimates-and-race-and-ethnicity-data" class="section level3">
+<h3>Population estimates and race and ethnicity data</h3>
+<p>Next we gather the race and ethnicity data from the US Census. We are using the
+<code>tidycensus</code> package to get the data from the 2010 decennial census.</p>
+<pre class="r"><code>library(tidycensus)
+# Get race/enthnicity ratios (2010 / get_decennial)
+municipality_race_ethnicity_ratios &lt;- counties %&gt;%
+  map_df(
+    ~ get_decennial(
+      geography = &quot;county subdivision&quot;,
+      state = &quot;NJ&quot;,
+      county = .,
+      year = 2010,
+      output = &quot;wide&quot;,
+      variables = c(
+        population = &quot;P001001&quot;,
+        white = &quot;P003002&quot;,
+        black = &quot;P003003&quot;,
+        native_american = &quot;P003004&quot;,
+        asian = &quot;P003005&quot;,
+        pacific_islander = &quot;P003006&quot;,
+        other_races = &quot;P003007&quot;,
+        two_or_more_races = &quot;P003008&quot;,
+        non_hispanic_or_latino = &quot;P004002&quot;,
+        hispanic_or_latino = &quot;P004003&quot;
+      )
+    )
+  ) %&gt;%
+  filter(population != 0) %&gt;%
+  # Convert totals to ratios
+  mutate(across(white:hispanic_or_latino, ~ .x / population)) %&gt;%
+  rename_with( ~ paste0(&quot;r_&quot;, .), white:hispanic_or_latino) %&gt;%
+  select(GEOID, r_white:r_hispanic_or_latino)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-9">Table 4: </span>head(municipality_race_ethnicity_ratios) (first several columns)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+GEOID
+</th>
+<th style="text-align:right;">
+r_white
+</th>
+<th style="text-align:right;">
+r_black
+</th>
+<th style="text-align:right;">
+r_native_american
+</th>
+<th style="text-align:right;">
+r_asian
+</th>
+<th style="text-align:right;">
+r_pacific_islander
+</th>
+<th style="text-align:right;">
+r_other_races
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3400100100
+</td>
+<td style="text-align:right;">
+0.76
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400102080
+</td>
+<td style="text-align:right;">
+0.27
+</td>
+<td style="text-align:right;">
+0.38
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400120290
+</td>
+<td style="text-align:right;">
+0.70
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400108680
+</td>
+<td style="text-align:right;">
+0.73
+</td>
+<td style="text-align:right;">
+0.09
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400108710
+</td>
+<td style="text-align:right;">
+0.78
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.04
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400115160
+</td>
+<td style="text-align:right;">
+0.98
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+</tr>
+</tbody>
+</table>
+<p>Next we gather the the population and population density from the 2019
+estimates, again using the <code>tidycensus</code> package.</p>
+<pre class="r"><code># Get population and density  (2019 / get_estimates)
+municipality_population &lt;- counties %&gt;%
+  map_df(
+    ~ get_estimates(
+      geography = &quot;county subdivision&quot;,
+      state = &quot;NJ&quot;,
+      county = .,
+      year = 2019,
+      output = &quot;wide&quot;,
+      product = &quot;population&quot;
+    )
+  ) %&gt;%
+  select(GEOID, population = POP, density = DENSITY)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-11">Table 5: </span>head(municipality_population)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+GEOID
+</th>
+<th style="text-align:right;">
+population
+</th>
+<th style="text-align:right;">
+density
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3400108680
+</td>
+<td style="text-align:right;">
+4284
+</td>
+<td style="text-align:right;">
+566
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400120350
+</td>
+<td style="text-align:right;">
+4052
+</td>
+<td style="text-align:right;">
+373
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400129280
+</td>
+<td style="text-align:right;">
+25746
+</td>
+<td style="text-align:right;">
+232
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400149410
+</td>
+<td style="text-align:right;">
+5856
+</td>
+<td style="text-align:right;">
+104
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400168430
+</td>
+<td style="text-align:right;">
+10174
+</td>
+<td style="text-align:right;">
+2537
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400100100
+</td>
+<td style="text-align:right;">
+8818
+</td>
+<td style="text-align:right;">
+1613
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="household-median-income" class="section level3">
+<h3>Household median income</h3>
+<p>Next, we get figures for the household median income from the 2015-2019 ACS.</p>
+<pre class="r"><code>municipality_income &lt;- counties %&gt;%
+  map_df(
+    ~ get_acs(
+      geography = &quot;county subdivision&quot;,
+      state = &quot;NJ&quot;,
+      county = .,
+      year = 2019,
+      output = &quot;wide&quot;,
+      variables = c(household_median_income = &quot;B19013_001&quot;)
+    )
+  ) %&gt;%
+  select(GEOID, household_median_income = household_median_incomeE) %&gt;%
+  filter(!is.na(household_median_income))</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-13">Table 6: </span>head(municipality_income)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+GEOID
+</th>
+<th style="text-align:right;">
+household_median_income
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3400100100
+</td>
+<td style="text-align:right;">
+70393
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400160600
+</td>
+<td style="text-align:right;">
+112917
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400115160
+</td>
+<td style="text-align:right;">
+82500
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400149410
+</td>
+<td style="text-align:right;">
+82663
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400168430
+</td>
+<td style="text-align:right;">
+61366
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400143890
+</td>
+<td style="text-align:right;">
+83045
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="use-of-force-incident-counts" class="section level3">
+<h3>Use of force incident counts</h3>
+<p>Finally, we gather 2021 counts of use of force incidents from the <code>njoaguof</code>
+package. This task is somewhat complicated by the fact that we (probably) do not
+have the full year of data from every municipality. The earliest incidents in
+the dataset are from October 2020, but many individual agencies do not have
+incidents until 2021. For example, here are all the incidents reported by the Watchung PD, from October 2020 through May 2022.</p>
+<pre class="r"><code>library(njoaguof)
+incident %&gt;%
+  filter(
+      agency_county == &quot;Somerset County&quot; &amp;
+      agency_name == &quot;Watchung PD&quot;
+  ) %&gt;% 
+  ggplot() + geom_histogram(aes(x=incident_date_1), binwidth=30) +
+  scale_x_date(limits=lubridate::ymd(c(&quot;2020-10-01&quot;,&quot;2022-05-31&quot;))) +
+  xlab(&quot;Date&quot;) + ylab(&quot;Number of incidents&quot;) +
+  labs(title=str_wrap(&quot;Watchung PD use of force incidents&quot;),
+       subtitle = str_wrap(&quot;Oct 2020 - May 2022&quot;),
+       caption = &quot;Source: NJ OAG&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>One suspects that there may have been use of force incidents between October
+2020 and July 2021 that went unreported by the Watchung PD, simply because they
+had not yet started reporting such incidents at the time. It is not clear the
+earliest date at which the Watchung PD <em>would</em> have reported a use of force
+incident, but it may have been well into 2021.</p>
+<p>For this reason, we will attempt to estimate when each department started
+reporting use of force incidents. We will make the simplifying assumption that
+for each department, the incidents represent a homogeneous Poisson process with
+an unknown starting point and continuing through the end of 2021. <a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> For agencies which reported their first incident in 2021, we estimate
+the rate <span class="math inline">\(\lambda\)</span> of incidents by looking at the period <em>after</em> the first
+incident to the end of the year:
+<span class="math display">\[\lambda_{est}=n/d\]</span>
+where <span class="math inline">\(n\)</span> is the number of incidents after the first one, and <span class="math inline">\(d\)</span> is the number
+of days from the first incident to the end of 2021.
+For a Poisson process with rate <span class="math inline">\(\lambda\)</span>, the expected value of the time until
+the first incident is <span class="math inline">\(e^{-\lambda}/(1-e^{-\lambda})\)</span>. Thus we estimate the
+start of the reporting period <span class="math inline">\(t_0\)</span> as
+<span class="math display">\[{t_0}_{est} = t_1 - e^{-\lambda_{est}}/(1-e^{-\lambda_{est}})\]</span>
+where <span class="math inline">\(t_1\)</span> is the date of the first incident.
+<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a> Note that in order to use this estimate, there must
+be at least two incidents in 2021.</p>
+<p>Let us now calculate <span class="math inline">\(\lambda_{est}\)</span> and <span class="math inline">\({t_0}_{est}\)</span> and the estimated proportion
+of the year 2021 this represents for every municipal agency who reported their
+first incident in 2021:</p>
+<pre class="r"><code>initial_incident_2021_estimates &lt;- incident %&gt;%
+  # Find the first incident and the number of incidents after
+  group_by(agency_county, agency_name) %&gt;%
+  summarize(
+    first_incident = min(incident_date_1),
+    incidents_after_first = sum(lubridate::year(incident_date_1) == 2021) - 1,
+    .groups = &quot;drop&quot;
+  ) %&gt;%
+  filter(lubridate::year(first_incident) == 2021) %&gt;%
+  mutate(
+    # Estimate lambda
+    lambda_est_period = lubridate::ymd(&quot;2022-01-01&quot;) - first_incident,
+    lambda_est = incidents_after_first / as.double(lambda_est_period),
+    # Estimate t_0
+    t_0_est = case_when(
+      incidents_after_first == 0 ~ as.Date(NA),
+      TRUE ~ first_incident - exp(-lambda_est) / (1 - exp(-lambda_est)),
+    ),
+    # Estimate the partial year
+    reporting_days_est = lubridate::ymd(&quot;2022-01-01&quot;) -
+      pmax(t_0_est, lubridate::ymd(&quot;2021-01-01&quot;)),
+    partial_year = as.double(reporting_days_est) /
+      as.double(lubridate::ymd(&quot;2022-01-01&quot;) - lubridate::ymd(&quot;2021-01-01&quot;))
+  ) %&gt;%
+  # Filter out non-municipal agencies
+  left_join(agency, by = c(&quot;agency_county&quot;, &quot;agency_name&quot;)) %&gt;%
+  filter(!is.na(municipality)) %&gt;%
+  select(agency_county, municipality, lambda_est, t_0_est, partial_year)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-16">Table 7: </span>head(initial_incident_2021_estimates)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+agency_county
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:right;">
+lambda_est
+</th>
+<th style="text-align:left;">
+t_0_est
+</th>
+<th style="text-align:right;">
+partial_year
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Atlantic County
+</td>
+<td style="text-align:left;">
+Linwood city
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+<td style="text-align:left;">
+2021-02-11
+</td>
+<td style="text-align:right;">
+0.89
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Atlantic County
+</td>
+<td style="text-align:left;">
+Longport borough
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+<td style="text-align:left;">
+2021-10-15
+</td>
+<td style="text-align:right;">
+0.21
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Atlantic County
+</td>
+<td style="text-align:left;">
+Margate City city
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+<td style="text-align:left;">
+2021-04-06
+</td>
+<td style="text-align:right;">
+0.74
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Atlantic County
+</td>
+<td style="text-align:left;">
+Mullica township
+</td>
+<td style="text-align:right;">
+0.03
+</td>
+<td style="text-align:left;">
+2021-01-06
+</td>
+<td style="text-align:right;">
+0.98
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Bergen County
+</td>
+<td style="text-align:left;">
+Allendale borough
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:left;">
+2020-12-20
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Bergen County
+</td>
+<td style="text-align:left;">
+Carlstadt borough
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+<td style="text-align:left;">
+2020-12-01
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+</tr>
+</tbody>
+</table>
+<p>There are 117 municipal agencies that reported their first incident in 2021. Of
+these, only 13 reported a single incident in 2021; we cannot estimate the the
+start of the reporting period for these. Of the remainder, we reckon that we
+have a full year of reporting for 49 and a partial year for 55:</p>
+<pre class="r"><code>initial_incident_2021_estimates %&gt;% count(partial_year&lt; 1)</code></pre>
+<pre><code>## # A tibble: 3 × 2
+##   `partial_year &lt; 1`     n
+##   &lt;lgl&gt;              &lt;int&gt;
+## 1 FALSE                 49
+## 2 TRUE                  55
+## 3 NA                    13</code></pre>
+<p>Now we can build a table of all municipal agencies with an incident in either
+2020 or 2021 and estimate the yearly rate of incidents for 2021.</p>
+<ul>
+<li>For municipalities with an incident in 2020, this rate is exactly the number
+of incidents in 2021.</li>
+<li>For municipalities that reported their first incident in 2021, the estimated
+rate is the number of incidents reported 2021 divided by <code>partial_year</code>.</li>
+</ul>
+<pre class="r"><code>incident_rate_2021 &lt;- incident %&gt;%
+  # Get the 2021 incident count
+  filter(lubridate::year(incident_date_1) &lt;= 2021) %&gt;%
+  group_by(agency_county, agency_name) %&gt;%
+  summarize(incident_count = sum(lubridate::year(incident_date_1) == 2021),
+            .groups = &quot;drop&quot;) %&gt;%
+  # Filter out the non-municipal agencies
+  left_join(agency, by = c(&quot;agency_county&quot;, &quot;agency_name&quot;)) %&gt;%
+  filter(!is.na(municipality)) %&gt;%
+  select(agency_county, municipality, incident_count) %&gt;%
+  # Add a partial_year field, initialed to 1.0, and then update
+  # with the initial_incident_2021_estimates
+  mutate(partial_year = 1.0) %&gt;%
+  rows_update(
+    select(
+      initial_incident_2021_estimates,
+      agency_county,
+      municipality,
+      partial_year
+    ),
+    by = c(&quot;agency_county&quot;, &quot;municipality&quot;)
+  ) %&gt;%
+  # Estimate the 2021 yearly rate
+  mutate(incident_rate_est = incident_count / partial_year)</code></pre>
+<p>Finally, let’s switch to using the <code>GEOID</code> as the primary key.</p>
+<pre class="r"><code>municipality_incident_rate &lt;- incident_rate_2021 %&gt;%
+  left_join(municipality, 
+            by = c(&quot;agency_county&quot; = &quot;county&quot;, &quot;municipality&quot;)) %&gt;%
+  select(GEOID, incident_count, partial_year, incident_rate_est)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-20">Table 8: </span>head(municipality_incident_rate)
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+GEOID
+</th>
+<th style="text-align:right;">
+incident_count
+</th>
+<th style="text-align:right;">
+partial_year
+</th>
+<th style="text-align:right;">
+incident_rate_est
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3400100100
+</td>
+<td style="text-align:right;">
+8
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+8
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400102080
+</td>
+<td style="text-align:right;">
+119
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+119
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400107810
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+26
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400120350
+</td>
+<td style="text-align:right;">
+19
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+19
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400120290
+</td>
+<td style="text-align:right;">
+63
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+63
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400125560
+</td>
+<td style="text-align:right;">
+83
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+83
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="combining-the-tables" class="section level2">
+<h2>Combining the tables</h2>
+<p>Before combining the tables, we have to take into account the fact that the
+Township of Princeton and Princeton Borough merged in 2013.</p>
+<div id="princeton-borough-and-princeton-township" class="section level3">
+<h3>Princeton Borough and Princeton Township</h3>
+<p>The former Princeton Township
+is present in the <code>municipality_race_ethnicity_ratios</code> table, since it is
+derived from the 2010 census, but absent from the other tables. We will handle
+this by updating <code>municipality_race_ethnicity_ratios</code>, combining the two
+Princetons, weighted by their 2010 populations.</p>
+<pre class="r"><code># Combine the two Princetons.
+#   Township:  Population 16265,  GEOID 3402160915
+#   Borough:   Population 12307   GEOID 3402160900
+combined_princeton &lt;- municipality_race_ethnicity_ratios %&gt;%
+  filter(GEOID %in% c(&quot;3402160900&quot;, &quot;3402160915&quot;)) %&gt;%
+  arrange(GEOID) %&gt;%
+  mutate(weight = c(12307, 16265)) %&gt;%
+  summarize(across(r_white:r_hispanic_or_latino,
+                   ~ sum(.x * weight) / sum(weight))) %&gt;%
+  mutate(GEOID = &quot;3402160900&quot;) %&gt;%
+  relocate(GEOID)
+
+# Update the table with new ratios for Princeton Borough
+municipality_race_ethnicity_ratios &lt;- municipality_race_ethnicity_ratios %&gt;% 
+  rows_update(combined_princeton, by=&quot;GEOID&quot;)</code></pre>
+</div>
+<div id="us-census-and-officer-diversity-race-and-ethnicity-differences" class="section level3">
+<h3>US Census and Officer Diversity Race And Ethnicity Differences</h3>
+<p>Before combining the data, we should note here that the US Census and NJ OAG
+treat Hispanic and Latino origin differently.
+In the NJ OAG Law Enforcement Officer Diversity dataset, Hispanic and Latino origin is considered a race, so for officers we will have
+<span class="math display">\[
+r_{male} +
+r_{white} + \cdots + r_{non\_hispanic\_or\_latino} + \cdots +
+r_{two\_or\_more\_races} +
+r_{race\_na}
+  = 1
+\]</span></p>
+<p>On the other hand, the US Census treats Hispanic and Latino origin as an ethnicity independent of race. Thus, for the general population, we will have
+<span class="math display">\[
+r_{white} + r_{black} + \cdots +  r_{two\_or\_more\_races} = 1
+\]</span>
+and</p>
+<p><span class="math display">\[
+r_{non\_hispanic\_or\_latino} + r_{hispanic\_or\_latino} = 1
+\]</span></p>
+</div>
+<div id="the-combined-table" class="section level3">
+<h3>The combined table</h3>
+<p>Now we can build the combined table.</p>
+<pre class="r"><code>combined_table &lt;- officer_info %&gt;% 
+  inner_join(municipality_population, by=&quot;GEOID&quot;) %&gt;%
+  inner_join(municipality_race_ethnicity_ratios, by=&quot;GEOID&quot;) %&gt;%
+  inner_join(municipality_income, by=&quot;GEOID&quot;) %&gt;%
+  inner_join(municipality_shore, by=&quot;GEOID&quot;) %&gt;%
+  inner_join(municipality_incident_rate, by=&quot;GEOID&quot;)</code></pre>
+<p>This table has 407 rows, of which 395 have an estimate of the incident rate. These 395 rows cover 90% of the population of New Jersey.</p>
+<pre class="r"><code>sum(combined_table[!is.na(combined_table$incident_rate_est),]$population) /
+  sum(municipality_population$population)</code></pre>
+<pre><code>## [1] 0.9</code></pre>
+</div>
+</div>
+<div id="use-of-force-incidents-by-population-and-officer-count" class="section level2">
+<h2>Use of force incidents by population and officer count</h2>
+<p>Unsurprisingly, the incident rate estimate is strongly correlated with both the population and the officer count.</p>
+<pre class="r"><code>combined_table %&gt;%
+  select(incident_rate_est,
+         officer_count,
+         population,
+         partial_year,
+         shore_town) %&gt;%
+  pivot_longer(officer_count:population) %&gt;%
+  ggplot(aes(x = incident_rate_est, y = value)) +
+  geom_point(aes(alpha = partial_year, color = shore_town)) +
+  geom_smooth(aes(weight = partial_year), method = &quot;lm&quot;, se = FALSE) +
+  scale_x_log10() + scale_y_log10(labels=scales::comma) +
+  facet_wrap(facets = &quot;name&quot;, scales = &quot;free&quot;) +
+  labs(
+    title = str_wrap(&quot;2021 use of force incidents vs population and officer count&quot;),
+    caption = &quot;Source: US Census, NJ OAG&quot;
+  ) +
+  theme(legend.position = &quot;bottom&quot;,
+        axis.title.y=element_blank())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
+<p>However, in a joint linear model, the <code>officer_count</code> is far more significant than <code>population</code>.</p>
+<pre class="r"><code>lm(incident_rate_est ~ officer_count + population, 
+   combined_table , weights=partial_year) %&gt;% 
+  summary() %&gt;% 
+  magrittr::use_series(&quot;coefficients&quot;)</code></pre>
+<pre><code>##               Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept)   -4.18760    1.66373    -2.5  1.2e-02
+## officer_count  0.92022    0.04508    20.4  1.3e-63
+## population    -0.00034    0.00014    -2.5  1.3e-02</code></pre>
+<p>As we observed in
+<a href="/2022/06/25/digging-into-njoag-law-enforcement-officer-diversity-data-part-i/">Part I</a>,
+many of the towns on the Jersey Shore (blue dots in the chart above) have
+much larger summer populations (and correspondingly larger police departments)
+not reflected in the US Census <code>population</code>. If we exclude the shore towns, the
+<code>population</code> becomes more significant in the joint model, though still less so
+than the <code>officer_count</code>.</p>
+<pre class="r"><code>combined_table_core &lt;- combined_table %&gt;% filter(!shore_town)
+lm(incident_rate_est ~ officer_count + population, 
+   combined_table_core , weights=partial_year) %&gt;% 
+  summary() %&gt;% 
+  magrittr::use_series(&quot;coefficients&quot;)</code></pre>
+<pre><code>##               Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept)   -4.45728    1.70075    -2.6  9.2e-03
+## officer_count  0.98138    0.04755    20.6  1.4e-62
+## population    -0.00052    0.00015    -3.6  3.6e-04</code></pre>
+<p>With this in mind, we will begin to focus on the <em>per-officer</em> incident rate, and
+try to see how variations in this rate between municipalities are explained by the other variables in our combined table.</p>
+</div>
+<div id="next" class="section level2">
+<h2>Next</h2>
+<p>In the next post, we will use the <code>combined_table</code> generated in this post and begin exploring the relationship between these variables and number of use of force incidents per officer.</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>This is
+certainly a <em>simplifying</em> assumption, since we would expect the frequency of
+incidents to vary seasonally, especially for shore towns. It is also possible
+that some departments <em>stopped</em> reporting incidents some time before the end of
+2021, or reported incidents sporadically. Additionally, the force incidents
+frequently appear in bunches because multiple officers or multiple subjects may
+be involved in a single event. We will not attempt account for these
+factors.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+<li id="fn2"><p>Note that
+<span class="math display">\[1/\lambda &lt; e^{-\lambda}/(1-e^{-\lambda}) &lt; 1/\lambda + 1/2\]</span>
+when <span class="math inline">\(\lambda &gt; 0\)</span>, so the naive estimate <span class="math inline">\({t_0}_{est} = t_1 - d/n\)</span>
+would work nearly as well.<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
