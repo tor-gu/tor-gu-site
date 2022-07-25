@@ -1,0 +1,2526 @@
+---
+title: Digging into NJOAG Law Enforcement Officer Diversity data - Part III
+author: Tor
+date: '2022-07-25'
+slug: digging-into-njoag-law-enforcement-officer-diversity-data-part-iii
+categories: []
+tags:
+  - NJOAGLEOD
+  - NJOAGUOF
+  - R
+  - tidymodels
+  - xgboost
+subtitle: Does law enforcement officer diversity affect use of force?
+output:
+  blogdown::html_page:
+    toc: true
+    toc_depth: 2
+---
+
+<script src="{{< blogdown/postref >}}index_files/kePrint/kePrint.js"></script>
+<link href="{{< blogdown/postref >}}index_files/lightable/lightable.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/bsTable/bootstrapTable.min.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/bsTable/bootstrapTable.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction">Introduction</a>
+<ul>
+<li><a href="#our-approach">Our approach</a></li>
+<li><a href="#packages-used-in-this-post">Packages used in this post</a></li>
+</ul></li>
+<li><a href="#preparing-the-training-data">Preparing the training data</a>
+<ul>
+<li><a href="#a-note-on-our-model-outcome-variable-incident_rate_per_officer">A note on our model outcome variable, <code>incident_rate_per_officer</code></a></li>
+</ul></li>
+<li><a href="#building-the-models">Building the models</a>
+<ul>
+<li><a href="#municipal-models">Municipal models</a></li>
+<li><a href="#agency-models">Agency models</a></li>
+<li><a href="#final-fit">Final fit</a></li>
+</ul></li>
+<li><a href="#conclusions">Conclusions</a></li>
+<li><a href="#next">Next</a></li>
+</ul>
+</div>
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>This is Part III of a series exploring the Law Enforcement Officer Diversity dataset released by the NJ OAG.</p>
+<ul>
+<li>In <a href="/2022/06/25/digging-into-njoag-law-enforcement-officer-diversity-data-part-i/">Part I</a>, we looked at municipal police departments and observed that towns on the Jersey Shore – especially smaller towns – had larger police departments relative to population than the rest of the state.</li>
+<li>In <a href="/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/">Part II</a>, we started gathering data from other sources to create a combined table of municipal PDs, including use of force data from the <a href="https://github.com/tor-gu/njoaguof/blob/main/README.md">njoaguof</a> package, plus population, density, income and race and ethinicity data from the US Census. We concluded by observing that agency size is a better predictor than population for use of force incidents.</li>
+</ul>
+<p>In this post, we will look at what factors affect the number of use of of force incidents per officer. In particular, we want to know:</p>
+<blockquote>
+<p><strong>Is there a relationship between <em>law enforcement officer diversity</em> and the <em>per-officer use of force rate</em>?</strong></p>
+</blockquote>
+<p>Taken at face value, the answer to this question is <em>yes</em>. For example, across municipal agencies, the 2021 per-officer use-of-force rate <span class="math inline">\(F\)</span> is positively correlated with <span class="math inline">\(r_\text{officer black}\)</span>, the proportion of officers that are Black (<span class="math inline">\(p=.026\)</span>). On the other hand, the use of force rate is also positively correlated with <span class="math inline">\(r_\text{black}\)</span>, the proportion of <em>residents</em> that are Black (<span class="math inline">\(p=7 \times 10^{-6}\)</span>). Of course, <span class="math inline">\(F\)</span>, <span class="math inline">\(r_\text{black}\)</span> and <span class="math inline">\(r_\text{officer black}\)</span> are all mutually correlated, and in a joint linear model, <span class="math inline">\(r_\text{black}\)</span> is positively correlated with <span class="math inline">\(F\)</span> while <span class="math inline">\(r_\text{officer black}\)</span> is <em>negatively</em> correlated with the use of force rate.</p>
+<p>So, refining the question a bit, we want to ask:</p>
+<blockquote>
+<p><strong>Across municipal police departments, after accounting for municipal data, is there a relationship between <em>law enforcement officer diversity</em> and the <em>per-officer use of force rate</em>?</strong></p>
+</blockquote>
+<p>The perhaps somewhat surprising answer is, for the most part, <strong>no</strong>. More precisely, we find that, after accounting for municipal household median income, racial demographics, and a regional factor (North Jersey vs South Jersey), there is no significant correlation between the 2021 per-officer rate of use of force on the one hand and officer median age, officer gender ratio, and the ratio of white, Black or Hispanic officers. It is possible that there is a relationship between the ratio of Asian officers and the use of force rate, but the evidence is weak.</p>
+<p>But as it turns out, the problem of finding a connection between police diversity and use of force is not so easy. Evidence in the existing literature for such a relationship is frequently described as “mixed”. Here is a sampling:</p>
+<ul>
+<li><a href="https://onlinelibrary.wiley.com/doi/epdf/10.1111/1541-0072.t01-1-00009">Smith (2003)</a>: “The findings show that more diversified departments do not have significantly lower levels of police-caused homicides.”</li>
+<li><a href="https://journals.sagepub.com/doi/abs/10.1177/0011128708316977">Hickman and Piquero (2008)</a>: “Minority representation was unrelated to [use of force] complaint rates nor to the percentage of complaints sustained.”</li>
+<li><a href="https://academic.oup.com/socpro/article-abstract/61/1/83/1626052">Smith and Holmes (2014)</a>: “A negative relationship between the ratio of black officers to black citizens and sustained [use of force] complaints exists, indicating that departments more representative of the black community have fewer sustained complaints.”</li>
+<li><a href="https://www.tandfonline.com/doi/full/10.1080/10439463.2013.784314">Willits and Nowacki (2013)</a>: On the connection between representative policing and deadly force, “minority representation … is also statistically significant and in the expected direction.”</li>
+</ul>
+<p>Efforts to find such effects are complicated by the fact that agency diversity is probably not exogenous to the use of force rate, as well as a lack of attention (or access) to detailed policing records.</p>
+<p>A significant recent study that avoids these problems is <a href="https://www.science.org/doi/10.1126/science.abd8694">Ba, Knox, Mummolo and Rivera (2021)</a>, which, analyzing millions of detailed records from the city of Chicago, finds that “relative to white officers, Black and Hispanic officers make far fewer stops and arrests, and they use force less often, especially against Black civilians”.</p>
+<p>This post, far less rigorous than the above cited publications, decidedly does <em>not</em> avoid these problems, and we do not claim that there is no connection
+between agency diversity and use of force. Our observation here is simply that, if there is a relationship between municipal police department diversity and the per-officer use-of-force rate in New Jersey, it is not visible in the Law Enforcement Officer Diversity and Use of Force data so far released by the NJ OAG.</p>
+<div id="our-approach" class="section level2">
+<h2>Our approach</h2>
+<p>This will be another R-centric post. We will start by building models that predict the per-officer use-of-force rate for each municipal police department in terms of the <em>municipal</em> data for the community the department serves, including:</p>
+<ul>
+<li>Population and density</li>
+<li>Race and ethnicity</li>
+<li>Household Median Income</li>
+<li>Regional factors (North Jersey/South Jersey, Jersey Shore)</li>
+</ul>
+<p>We will privilege interpretable mathematical models over opaque machine learning models, though we will introduce some ML models to see if they are able to turn up relationships the that mathematical models missed.</p>
+<p>After we have a model for the use of force rate in terms of the <em>municipal</em> data, we see if the <em>agency</em> data has any additional predictive value. The agency data
+includes:</p>
+<ul>
+<li>Officer male/female ratio</li>
+<li>Officer mean age</li>
+<li>Officer race and ethnicity</li>
+</ul>
+<p>Rather than jumping to our final models, we will explore several models, though we will not recapitulate all the tuning and feature pruning. We will be using the <a href="https://www.tidymodels.org/">tidymodels</a> idiom for building recipes and doing cross validation.</p>
+</div>
+<div id="packages-used-in-this-post" class="section level2">
+<h2>Packages used in this post</h2>
+<p>In this post, I’ll be using the following packages.</p>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Package
+</th>
+<th style="text-align:left;">
+Title
+</th>
+<th style="text-align:left;">
+Version
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+njoagleod
+</td>
+<td style="text-align:left;">
+NJ OAG Law Enforcement Officer Diversity data package
+</td>
+<td style="text-align:left;">
+1.1.3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+njoaguof
+</td>
+<td style="text-align:left;">
+NJ OAG Use of Force data package
+</td>
+<td style="text-align:left;">
+1.4.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+gridExtra
+</td>
+<td style="text-align:left;">
+Miscellaneous Functions for “Grid” Graphics
+</td>
+<td style="text-align:left;">
+2.3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+sf
+</td>
+<td style="text-align:left;">
+Simple Features for R
+</td>
+<td style="text-align:left;">
+1.0-8
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tidyverse
+</td>
+<td style="text-align:left;">
+Easily Install and Load the ‘Tidyverse’
+</td>
+<td style="text-align:left;">
+1.3.1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tidymodels
+</td>
+<td style="text-align:left;">
+Easily Install and Load the ‘Tidymodels’ Packages
+</td>
+<td style="text-align:left;">
+1.0.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tidycensus
+</td>
+<td style="text-align:left;">
+Load US Census Boundary and Attribute Data as ‘tidyverse’ and
+‘sf’-Ready Data Frames
+</td>
+<td style="text-align:left;">
+1.2.2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+tigris
+</td>
+<td style="text-align:left;">
+Load Census TIGER/Line Shapefiles
+</td>
+<td style="text-align:left;">
+1.6.1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+vip
+</td>
+<td style="text-align:left;">
+Variable Importance Plots
+</td>
+<td style="text-align:left;">
+0.3.2
+</td>
+</tr>
+</tbody>
+</table>
+<p>This is not a tutorial for using these packages, but all the R code used to generate the plots, tables and models will be included.</p>
+<p>The OAG packages can be installed from github:</p>
+<pre class="r"><code>install_github(&quot;tor-gu/njoaguof&quot;)
+install_github(&quot;tor-gu/njoagleod&quot;)</code></pre>
+</div>
+</div>
+<div id="preparing-the-training-data" class="section level1">
+<h1>Preparing the training data</h1>
+<p>In <a href="/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/">Part II</a> we assembled a <code>combined_table</code> of municipal agencies including most of the data we will need. A script to recreate this table (along with <code>nj_municipality_map</code>) may be found <a href="https://gist.github.com/tor-gu/c03164e55d851b2e31c87ea5b5b6591b">here</a>. Before using this data, we need to do some additional preparation. We need to</p>
+<ul>
+<li>Add a column for <code>incident_rate_per_officer</code>. This will be the outcome value in our models.</li>
+<li>Add a column for <code>officer_years</code>, the product of <code>officer_count</code> and <code>partial_year</code>. This will be the case weight in our models.</li>
+<li>Filter out the rows with <code>NA</code> values for <code>incident_rate_per_officer</code>.</li>
+<li>Add a field for North Jersey.</li>
+<li>Arrange the columns so the agency and municipal predictors are last.</li>
+<li>Split the data into test and training sets.</li>
+</ul>
+<p>For our purposes, “North Jersey” means the municipalities in the 11 northern-most counties in the state:</p>
+<pre class="r"><code># Northern counties
+northern_nj_counties &lt;- c(&quot;Bergen County&quot;, &quot;Essex County&quot;, &quot;Hudson County&quot;,
+  &quot;Hunterdon County&quot;, &quot;Middlesex County&quot;, &quot;Morris County&quot;, &quot;Passaic County&quot;,
+  &quot;Somerset County&quot;, &quot;Sussex County&quot;, &quot;Union County&quot;, &quot;Warren County&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" />
+There are <a href="https://en.wikipedia.org/wiki/North_Jersey">other definitions</a> of the North Jersey cultural region. Our definition is on the expansive side, including three northernmost border counties, Hunterdon, Somerset and Middlesex, and comprises about 62% of the population.</p>
+<p>Here is how we construct our new combined table, <code>ct</code>. Note that we mark
+<code>officer_years</code> as type <code>tidymodels::importance_weights</code>.</p>
+<pre class="r"><code>library(tidymodels)
+library(njoagleod)
+# Build a combined table:
+# - Add incident_rate_per_officer (output)
+# - Add officer_years (weight)
+# - Add northern_nj
+# - put all predictors at the end.
+ct &lt;- combined_table %&gt;%
+  mutate(incident_rate_per_officer = incident_rate_est / officer_count,
+         officer_years = importance_weights(officer_count * partial_year)
+  ) %&gt;%
+  filter(!is.na(incident_rate_per_officer)) %&gt;%
+  left_join(municipality, by = &quot;GEOID&quot;) %&gt;%
+  mutate(northern_nj = case_when(
+    county %in% northern_nj_counties ~ TRUE,
+    TRUE ~ FALSE
+  )) %&gt;% 
+  select(-county, -municipality) %&gt;%
+  relocate(GEOID, incident_rate_per_officer, 
+           officer_count, incident_count, partial_year, officer_years,
+           incident_rate_est)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-8">Table 1: </span>ct, selected columns
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+GEOID
+</th>
+<th style="text-align:right;">
+incident_rate_per_officer
+</th>
+<th style="text-align:right;">
+officer_count
+</th>
+<th style="text-align:right;">
+officer_years
+</th>
+<th style="text-align:right;">
+officer_mean_age
+</th>
+<th style="text-align:right;">
+officer_r_male
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3402500070
+</td>
+<td style="text-align:right;">
+0.54
+</td>
+<td style="text-align:right;">
+41
+</td>
+<td style="text-align:right;">
+41.0
+</td>
+<td style="text-align:right;">
+37
+</td>
+<td style="text-align:right;">
+0.95
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400100100
+</td>
+<td style="text-align:right;">
+0.28
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+29.0
+</td>
+<td style="text-align:right;">
+38
+</td>
+<td style="text-align:right;">
+0.93
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3400300700
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+15.0
+</td>
+<td style="text-align:right;">
+43
+</td>
+<td style="text-align:right;">
+0.87
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3402500730
+</td>
+<td style="text-align:right;">
+0.79
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+7.6
+</td>
+<td style="text-align:right;">
+40
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3403701360
+</td>
+<td style="text-align:right;">
+0.30
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:right;">
+9.9
+</td>
+<td style="text-align:right;">
+38
+</td>
+<td style="text-align:right;">
+0.92
+</td>
+</tr>
+</tbody>
+</table>
+<p>For the purpose of model building, we split this into training and testing sets.</p>
+<pre class="r"><code># split into training and testing
+set.seed(37)
+ct_split &lt;- initial_split(ct, strata = &quot;incident_rate_per_officer&quot;, prop = .75)
+ct_train &lt;- training(ct_split)
+ct_test &lt;- testing(ct_split)</code></pre>
+<p>Our training set has 295 rows. 100 rows have been reserved as test data.</p>
+<div id="a-note-on-our-model-outcome-variable-incident_rate_per_officer" class="section level2">
+<h2>A note on our model outcome variable, <code>incident_rate_per_officer</code></h2>
+<p>Before we begin building the models, let’s pause a moment to consider our
+model output variable, <code>incident_rate_per_officer</code>, which is <code>incident_rate_est</code> divided by <code>officer_count</code>. The value <code>incident_rate_est</code> represents our estimate for the annual rate of use of force incidents per year for each agency.<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> We use the per-officer rate rather than the per-resident rate, because <code>incident_rate_est</code> is more strongly correlated with <code>officer_count</code> than population. But is <code>incident_rate_per_officer</code> really independent of <code>officer_count</code>?</p>
+<p>In our training data, the two value <em>are</em> correlated, but only at <span class="math inline">\(p=.11\)</span></p>
+<pre class="r"><code>ct_train %&gt;% ggplot(aes(y = incident_rate_per_officer, x = officer_count)) +
+  geom_point(aes(alpha = partial_year)) +
+  geom_smooth(aes(weight = partial_year), color = &quot;lightyellow&quot;) +
+  geom_smooth(aes(weight = partial_year), method = &quot;lm&quot;, se = FALSE) +
+  scale_x_log10() + scale_y_log10() +
+  labs(title = &quot;Incident rate not quite independant of officer count&quot;,
+       subtitle = &quot;(Training data only)&quot;) +
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>model &lt;- lm(incident_rate_per_officer ~ officer_count, 
+   ct_train, weights=partial_year) %&gt;% tidy()</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-12">Table 2: </span>Incident rate ~ officer count
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+term
+</th>
+<th style="text-align:right;">
+estimate
+</th>
+<th style="text-align:right;">
+std.error
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Intercept)
+</td>
+<td style="text-align:right;">
+0.6130
+</td>
+<td style="text-align:right;">
+0.0291
+</td>
+<td style="text-align:right;">
+21.043
+</td>
+<td style="text-align:right;">
+0.0000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_count
+</td>
+<td style="text-align:right;">
+0.0004
+</td>
+<td style="text-align:right;">
+0.0003
+</td>
+<td style="text-align:right;">
+1.603
+</td>
+<td style="text-align:right;">
+0.1101
+</td>
+</tr>
+</tbody>
+</table>
+<p>We will proceed as if <code>incident_rate_per_officer</code> is independent of <code>officer_count</code>, but it is something to keep an eye on.</p>
+</div>
+</div>
+<div id="building-the-models" class="section level1">
+<h1>Building the models</h1>
+<p>As we mentioned above, our approach is:</p>
+<ul>
+<li>First, build a model of <code>incident_rate_per_officer</code> in terms of the <em>municipal</em> predictors, and excluding the <em>agency</em> predictors.</li>
+<li>Next, try to model the residuals of the municipal model with the <em>agency</em> predictors.</li>
+</ul>
+<div id="municipal-models" class="section level2">
+<h2>Municipal models</h2>
+<p>Our available predictors are <code>population</code>, <code>density</code>, <code>r_white</code>, <code>r_black</code>,
+<code>r_native_american</code>, <code>r_asian</code>, <code>r_pacific_islander</code>, <code>r_other_races</code>, <code>r_two_or_more_races</code>, <code>r_non_hispanic_or_latino</code>, <code>r_hispanic_or_latino</code>,
+<code>household_median_income</code>, <code>shore_town</code> and <code>northern_nj</code>.</p>
+<p>We will begin with linear models.</p>
+<div id="linear-municipal-model" class="section level3">
+<h3>Linear municipal model</h3>
+<p>With a linear model, we will find that the best predictors are <code>household_median_income</code> and <code>northern_nj</code>, along with some combination of the
+racial demographics. We get better results when the the race predictors are transformed – we use <span class="math inline">\(log(1+t)\)</span> here, though <span class="math inline">\(1/(1+t)\)</span> also works well.</p>
+<p>Below, we construct a linear model with <code>r_white</code>, <code>r_black</code>, <code>r_asian</code> and <code>r_other_races</code>. We use the <code>tidymodels</code> idiom for building up our models in
+terms of recipes. Our model fit to the training data is <code>fit_lm</code>.</p>
+<pre class="r"><code>predictors_lm &lt;-
+  c(
+    &quot;household_median_income&quot;,
+    &quot;northern_nj&quot;,
+    &quot;r_white&quot;,
+    &quot;r_black&quot;,
+    &quot;r_asian&quot;,
+    &quot;r_other_races&quot;
+  )
+
+mod_lm &lt;- linear_reg()
+
+recipe_lm &lt;- recipe(incident_rate_per_officer ~ ., data = ct_train) %&gt;% 
+  step_rm(-incident_rate_per_officer,         # Outcome
+          -officer_years,                     # Case weights
+          -all_of(predictors_lm)) %&gt;%         # Predictors
+  step_log(starts_with(&quot;r_&quot;), offset = 1)
+
+wf_lm &lt;- workflow() %&gt;%
+  add_model(mod_lm) %&gt;%
+  add_recipe(recipe_lm) %&gt;%
+  add_case_weights(officer_years)
+
+fit_lm &lt;- wf_lm %&gt;%
+  fit(data=ct_train)</code></pre>
+<p>All of the predictors are significant in this model, but it is worth noting that the adjusted <span class="math inline">\(R^2\)</span> only reaches <span class="math inline">\(.325\)</span>. (We will not do much better than this in any of our models.)</p>
+<pre class="r"><code>summary(fit_lm %&gt;% extract_fit_engine())$adj.r.squared</code></pre>
+<pre><code>## [1] 0.3252659</code></pre>
+<pre class="r"><code>tlm &lt;- fit_lm %&gt;% tidy()</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-16">Table 3: </span>Linear model fitted on training data
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+term
+</th>
+<th style="text-align:right;">
+estimate
+</th>
+<th style="text-align:right;">
+std.error
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Intercept)
+</td>
+<td style="text-align:right;">
+-1.5582053
+</td>
+<td style="text-align:right;">
+0.7075742
+</td>
+<td style="text-align:right;">
+-2.202179
+</td>
+<td style="text-align:right;">
+0.0284451
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_white
+</td>
+<td style="text-align:right;">
+3.8557628
+</td>
+<td style="text-align:right;">
+0.9951361
+</td>
+<td style="text-align:right;">
+3.874608
+</td>
+<td style="text-align:right;">
+0.0001323
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_black
+</td>
+<td style="text-align:right;">
+3.6490704
+</td>
+<td style="text-align:right;">
+0.8851725
+</td>
+<td style="text-align:right;">
+4.122440
+</td>
+<td style="text-align:right;">
+0.0000491
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_asian
+</td>
+<td style="text-align:right;">
+2.3164352
+</td>
+<td style="text-align:right;">
+0.7168403
+</td>
+<td style="text-align:right;">
+3.231452
+</td>
+<td style="text-align:right;">
+0.0013745
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_other_races
+</td>
+<td style="text-align:right;">
+2.4075361
+</td>
+<td style="text-align:right;">
+0.7683446
+</td>
+<td style="text-align:right;">
+3.133407
+</td>
+<td style="text-align:right;">
+0.0019060
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+household_median_income
+</td>
+<td style="text-align:right;">
+-0.0000036
+</td>
+<td style="text-align:right;">
+0.0000009
+</td>
+<td style="text-align:right;">
+-4.227892
+</td>
+<td style="text-align:right;">
+0.0000317
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+northern_njTRUE
+</td>
+<td style="text-align:right;">
+-0.2622801
+</td>
+<td style="text-align:right;">
+0.0477574
+</td>
+<td style="text-align:right;">
+-5.491930
+</td>
+<td style="text-align:right;">
+0.0000001
+</td>
+</tr>
+</tbody>
+</table>
+<p>The largest contributions are coming from <code>household_median_income</code> and <code>northern_nj</code>: There are lower rates of use of force in North Jersey and in higher income towns. In this model, the difference between North Jersey and South Jersey is about the same as a difference of $72,000 in household median income.
+Interpreting the coefficients of the racial demographic predictors is less straightforward. We will return to them in a subsequent post.</p>
+</div>
+<div id="a-linear-plus-model-incorporating-the-jersey-shore-and-officer-count" class="section level3">
+<h3>A ‘linear-plus’ model incorporating the Jersey Shore and officer count</h3>
+<p>The <code>shore_town</code> flag does not appear in our linear model, and adding it does not improve the model. However, recalling the interaction we saw in Part I between <code>shore_town</code> and <code>officer_count</code> – as well as our suspicion about the relationship between <code>officer_count</code> and <code>incident_rate_per_officer</code> – we may be
+tempted to add the interaction <code>shore_town * officer_count</code> to our model. Indeed, we do see an improvement, though we get our best model if we remove <code>officer_count</code>. We call this the ‘linear-plus’ model.</p>
+<pre class="r"><code>predictors_lm_plus &lt;- c(predictors_lm, &quot;shore_town&quot;, &quot;shore_officer_count&quot;)
+recipe_lm_plus &lt;- recipe(incident_rate_per_officer ~ ., data = ct_train) %&gt;% 
+  step_mutate(shore_officer_count = shore_town * officer_count) %&gt;%
+  step_rm(-incident_rate_per_officer,         # Outcome
+          -officer_years,                     # Case weights
+          -all_of(predictors_lm_plus)) %&gt;%    # Predictors
+  step_log(starts_with(&quot;r_&quot;), offset = 1)
+
+wf_lm_plus &lt;- wf_lm %&gt;%
+  update_recipe(recipe_lm_plus)
+
+fit_lm_plus &lt;- wf_lm_plus %&gt;%
+  fit(data = ct_train)
+
+summary(fit_lm_plus %&gt;% extract_fit_engine())$adj.r.squared</code></pre>
+<pre><code>## [1] 0.3475749</code></pre>
+<pre class="r"><code>tlm &lt;- fit_lm_plus %&gt;% tidy()</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-18">Table 4: </span>‘Linear-plus’ model, fitted on training data
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+term
+</th>
+<th style="text-align:right;">
+estimate
+</th>
+<th style="text-align:right;">
+std.error
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Intercept)
+</td>
+<td style="text-align:right;">
+-1.5762062
+</td>
+<td style="text-align:right;">
+0.7067729
+</td>
+<td style="text-align:right;">
+-2.230145
+</td>
+<td style="text-align:right;">
+0.0265138
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_white
+</td>
+<td style="text-align:right;">
+3.8774167
+</td>
+<td style="text-align:right;">
+0.9865117
+</td>
+<td style="text-align:right;">
+3.930432
+</td>
+<td style="text-align:right;">
+0.0001064
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_black
+</td>
+<td style="text-align:right;">
+3.7310550
+</td>
+<td style="text-align:right;">
+0.8804693
+</td>
+<td style="text-align:right;">
+4.237575
+</td>
+<td style="text-align:right;">
+0.0000305
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_asian
+</td>
+<td style="text-align:right;">
+2.5261617
+</td>
+<td style="text-align:right;">
+0.7136784
+</td>
+<td style="text-align:right;">
+3.539636
+</td>
+<td style="text-align:right;">
+0.0004675
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+r_other_races
+</td>
+<td style="text-align:right;">
+2.5385254
+</td>
+<td style="text-align:right;">
+0.7664448
+</td>
+<td style="text-align:right;">
+3.312078
+</td>
+<td style="text-align:right;">
+0.0010451
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+household_median_income
+</td>
+<td style="text-align:right;">
+-0.0000037
+</td>
+<td style="text-align:right;">
+0.0000009
+</td>
+<td style="text-align:right;">
+-4.347643
+</td>
+<td style="text-align:right;">
+0.0000192
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+shore_townTRUE
+</td>
+<td style="text-align:right;">
+0.2359364
+</td>
+<td style="text-align:right;">
+0.1089613
+</td>
+<td style="text-align:right;">
+2.165322
+</td>
+<td style="text-align:right;">
+0.0311897
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+northern_njTRUE
+</td>
+<td style="text-align:right;">
+-0.2925235
+</td>
+<td style="text-align:right;">
+0.0508569
+</td>
+<td style="text-align:right;">
+-5.751895
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+shore_officer_count
+</td>
+<td style="text-align:right;">
+-0.0025703
+</td>
+<td style="text-align:right;">
+0.0007602
+</td>
+<td style="text-align:right;">
+-3.380982
+</td>
+<td style="text-align:right;">
+0.0008228
+</td>
+</tr>
+</tbody>
+</table>
+<p>In the linear-plus model, <code>lm_plus</code>, the interaction is captured by <code>shore_officer_count</code>, which is just the <code>officer_count</code> when <code>shore_town</code> is TRUE, and is <code>0</code> when <code>shore_town</code> is false. So the <code>lm_plus</code> model has dependence on the officer count for shore towns only.</p>
+<p>This model has a marginally better <span class="math inline">\(R^2 = .35\)</span>, but at the cost of adding
+a predictor, <code>officer_count</code>, that we did not want to add.</p>
+</div>
+<div id="cross-validation" class="section level3">
+<h3>Cross validation</h3>
+<p>Let’s check the robustness of our models by using cross validation.</p>
+<pre class="r"><code>#### CV of linear models
+set.seed(37)
+folds &lt;- vfold_cv(ct_train, v = 10, repeats = 5)
+metrics_lm &lt;- wf_lm %&gt;%
+  fit_resamples(folds) %&gt;% 
+  collect_metrics()
+metrics_lm_plus &lt;- wf_lm_plus %&gt;%
+  fit_resamples(folds) %&gt;% 
+  collect_metrics()
+
+mt &lt;- lst(metrics_lm, metrics_lm_plus) %&gt;%
+  bind_rows(.id = &quot;model&quot;) %&gt;%
+  mutate(model = str_sub(model, 9)) %&gt;%
+  select(-.config)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-20">Table 5: </span>Cross validation metrics for the linear and linear-plus models
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+model
+</th>
+<th style="text-align:left;">
+.metric
+</th>
+<th style="text-align:left;">
+.estimator
+</th>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+n
+</th>
+<th style="text-align:right;">
+std_err
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+lm
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.424
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.254
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm_plus
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.436
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm_plus
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.233
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+</tbody>
+</table>
+<p>We observe that on cross validated data, the linear model slightly beats the linear-plus model on both RMSE (.424 vs .436) and <span class="math inline">\(R^2\)</span> (.254 vs .233). The advantage the linear-plus model showed before we did cross validation was probably
+a bit of overfitting. For now, we will take <code>lm</code> as our best model.</p>
+</div>
+<div id="problems-with-the-linear-municipal-models" class="section level3">
+<h3>Problems with the linear municipal models</h3>
+<p>One obvious problem with the linear models is that they may predict negative incident rates. In fact, we do have one negative prediction in the training data.</p>
+<pre class="r"><code>fit_lm %&gt;%
+  extract_fit_engine() %&gt;%
+  augment(ct_train) %&gt;% 
+  ggplot(aes(x = .fitted, y = incident_rate_per_officer)) +
+  geom_point(aes(size = officer_count, alpha = partial_year)) +
+  geom_abline(color = &quot;red&quot;) +
+  ylim(0, 2.5) +
+  theme(legend.position = &quot;bottom&quot;) +
+  labs(title = &quot;Linear model fit&quot;,
+       subtitle = &quot;(Training data only)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-21-1.png" width="672" />
+A second problem is that the model may be under-predicting the higher rates, though it is hard to say from this graph because of theheteroskedasticity:</p>
+<pre class="r"><code>par(mfrow = c(1, 2))
+plot(fit_lm %&gt;% extract_fit_engine(), which = c(1, 3))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+</div>
+<div id="log-linear-municipal-model" class="section level3">
+<h3>Log-linear municipal model</h3>
+<p>We will try to address the linear model problems with a log-linear model,
+<span class="math inline">\(\log y = \alpha + \sum\beta_ix_i + \epsilon\)</span>.</p>
+<pre class="r"><code># Log-linear model
+mod_llm &lt;- linear_reg() %&gt;%
+  set_engine(&quot;glm&quot;, family = Gamma(&quot;log&quot;))</code></pre>
+<p>We can reuse our linear model recipe, except that we will have to filter out
+the rows with no incidents. We note that we can expect this to cause a bias away from zero for small departments.</p>
+<pre class="r"><code>recipe_llm &lt;- recipe_lm %&gt;% 
+  step_filter(incident_rate_per_officer &gt; 0)
+wf_llm &lt;- wf_lm %&gt;%
+  update_model(mod_llm) %&gt;%
+  update_recipe(recipe_llm)
+fit_llm &lt;- wf_llm %&gt;%
+  fit(ct_train)</code></pre>
+<p>We do not have negative predictions or heteroskedasticity with the log-linear model.</p>
+<pre class="r"><code>fit_llm %&gt;%
+  extract_fit_engine() %&gt;%
+  augment(ct_train %&gt;% filter(incident_rate_per_officer &gt; 0),
+          type.predict = &quot;response&quot;) %&gt;% 
+  ggplot(aes(x = .fitted, y = incident_rate_per_officer)) +
+  geom_point(aes(size = officer_count, alpha = partial_year)) +
+  geom_abline(color = &quot;red&quot;) +
+  ylim(0, 2.5) + xlim(0, 1.5) +
+  theme(legend.position = &quot;bottom&quot;) +
+  labs(title = &quot;Log-Linear model fit&quot;,
+       subtitle = &quot;(Training data only)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-25-1.png" width="672" /></p>
+<pre class="r"><code>par(mfrow = c(1, 2))
+plot(fit_llm %&gt;% extract_fit_engine(), which=c(1, 3))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-26-1.png" width="672" /></p>
+<p>Let’s also try a log-linear-plus variant, similar to linear-plus:</p>
+<pre class="r"><code>recipe_llm_plus &lt;- recipe_lm_plus %&gt;% 
+  step_filter(incident_rate_per_officer &gt; 0)
+wf_llm_plus &lt;- wf_llm %&gt;%
+  update_recipe(recipe_llm_plus)
+fit_llm_plus &lt;- wf_llm_plus %&gt;% 
+  fit(ct_train)</code></pre>
+</div>
+<div id="cross-validation-1" class="section level3">
+<h3>Cross validation</h3>
+<p>Let’s get cross validation metrics for the two log-linear models and compare to the linear models.</p>
+<pre class="r"><code>metrics_llm &lt;- wf_llm %&gt;%
+  fit_resamples(folds) %&gt;% 
+  collect_metrics()
+metrics_llm_plus &lt;- wf_llm_plus %&gt;%
+  fit_resamples(folds) %&gt;% 
+  collect_metrics()
+mt &lt;- lst(metrics_lm, metrics_llm, metrics_lm_plus, metrics_llm_plus) %&gt;%
+  bind_rows(.id = &quot;model&quot;) %&gt;%
+  mutate(model = str_sub(model, 9)) %&gt;%
+  select(-.config)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-29">Table 6: </span>Cross validation metrics for the linear and log-linear models
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+model
+</th>
+<th style="text-align:left;">
+.metric
+</th>
+<th style="text-align:left;">
+.estimator
+</th>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+n
+</th>
+<th style="text-align:right;">
+std_err
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+lm
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.424
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.254
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+llm
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.424
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+llm
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.258
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.020
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm_plus
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.436
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm_plus
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.233
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+llm_plus
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.438
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+llm_plus
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.238
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.021
+</td>
+</tr>
+</tbody>
+</table>
+<p>The differences here are very slight, but the log-linear model <code>llm</code> performs at least as well as the linear model <code>lm</code>, while adding some desirable features (no negative predictions, homoskedasticity). The <code>lm_plus</code> and <code>llm_plus</code> are not adding anything that would justify the compromise we made in constructing them (adding <code>shore_officer_count</code>).</p>
+<p>So our best model so far is the log-linear model <code>llm</code>.</p>
+</div>
+<div id="ml-municipal-model" class="section level3">
+<h3>ML municipal model</h3>
+<p>Before turning to the agency predictors, let’s see if machine learning algorithms can turn up any patterns that our linear models are missing.</p>
+<p>We are not interested in replacing our interpretable linear model with an opaque
+ML model that performs only marginally better, so we will not spend a huge
+amount of time here tuning. We will use the <a href="https://xgboost.readthedocs.io/en/stable/">xgboost</a> package to build our model.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
+<p>We will begin by constructing a recipe for xgboost. We let xgboost use all the
+municipal predictors except <code>r_pacific_islander</code> and <code>r_native_american</code>, which are usually very close to zero.</p>
+<pre class="r"><code>counts &lt;- ct_train %&gt;%
+  count(r_native_american &gt; 0.01, r_pacific_islander &gt; 0.005)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-31">Table 7: </span>Very few towns in the training set with significant Native American or Pacific Islander populations
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+r_native_american &gt; 0.01
+</th>
+<th style="text-align:left;">
+r_pacific_islander &gt; 0.005
+</th>
+<th style="text-align:right;">
+n
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:right;">
+288
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+FALSE
+</td>
+<td style="text-align:right;">
+7
+</td>
+</tr>
+</tbody>
+</table>
+<p>We will do the same <code>log</code> transform of the <code>r_</code> fields as we did in our linear models. Note we have to convert the logical columns (<code>shore_town</code> and <code>northern_nj</code>) to integers.</p>
+<pre class="r"><code>municipal_predictors &lt;- ct %&gt;% select(population:northern_nj) %&gt;% names()
+recipe_xgb &lt;- recipe(incident_rate_per_officer ~ ., data = ct_train) %&gt;%
+  step_rm(-incident_rate_per_officer, -officer_years,
+          -all_of(municipal_predictors)) %&gt;%
+  step_rm(r_pacific_islander, r_native_american) %&gt;%
+  step_log(starts_with(&quot;r_&quot;), offset = 1) %&gt;%
+  step_integer(northern_nj, shore_town)</code></pre>
+<p>Here is the best tune we found for this recipe:</p>
+<pre class="r"><code># XGBoost model with tuned parameters
+mod_xgb &lt;- boost_tree(
+  mtry = .48,
+  trees = 600,            # nrounds
+  min_n = 24,             # min_child_weight
+  tree_depth = 2,         # max_depth
+  learn_rate = .0185,     # eta
+  loss_reduction = .001,  # gamma
+  sample_size = .715,
+  stop_iter = 50          # early_stopping_rounds
+) %&gt;% 
+  set_engine(&quot;xgboost&quot;,
+             alpha = .1,
+             lambda = 17500,
+             nthread = 12,
+             counts = FALSE) %&gt;%
+  set_mode(&quot;regression&quot;)  
+# XGBoost workflow
+wf_xgb &lt;- workflow() %&gt;%
+  add_model(mod_xgb) %&gt;%
+  add_recipe(recipe_xgb) %&gt;%
+  add_case_weights(officer_years)</code></pre>
+</div>
+<div id="comparison-with-log-linear-model" class="section level3">
+<h3>Comparison with log-linear model</h3>
+<p>If we look at the cross validation metrics and compare the XGBoost model to our existing models, we see that we have a small but noticeable improvement in both <span class="math inline">\(R^2\)</span> and RMSE.</p>
+<pre class="r"><code>metrics_xgb &lt;- wf_xgb %&gt;%
+  fit_resamples(folds) %&gt;% 
+  collect_metrics()
+mt &lt;- lst(metrics_lm, 
+    metrics_llm, 
+    metrics_lm_plus, 
+    metrics_llm_plus,
+    metrics_xgb) %&gt;%
+  bind_rows(.id = &quot;model&quot;) %&gt;%
+  mutate(model = str_sub(model, 9)) %&gt;%
+  select(-.config)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-35">Table 8: </span>Cross validation metrics for the linear, log-linear, and XGBoost models
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+model
+</th>
+<th style="text-align:left;">
+.metric
+</th>
+<th style="text-align:left;">
+.estimator
+</th>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+n
+</th>
+<th style="text-align:right;">
+std_err
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+lm
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.424
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.254
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+llm
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.424
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+llm
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.258
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.020
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm_plus
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.436
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lm_plus
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.233
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+llm_plus
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.438
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+llm_plus
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.238
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.021
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+xgb
+</td>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.418
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.025
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+xgb
+</td>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.278
+</td>
+<td style="text-align:right;">
+50
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+</tbody>
+</table>
+<p>Next, let’s compare the shape of the predictions generated by the log-linear and ML models:</p>
+<pre class="r"><code>fit_xgb &lt;- wf_xgb %&gt;%
+  fit(ct_train)
+ct_train_aug &lt;- bind_cols(
+  ct_train,
+  fit_llm %&gt;% predict(ct_train) %&gt;% rename(llm.pred = .pred),
+  fit_xgb %&gt;% predict(ct_train) %&gt;% rename(xgb.pred = .pred)
+)
+ct_train_aug %&gt;%
+  pivot_longer(llm.pred:xgb.pred, names_to = &quot;model&quot;, values_to = &quot;pred&quot;) %&gt;%
+  ggplot(aes(x = incident_rate_per_officer, y = pred)) +
+  geom_point(aes(size = officer_count, alpha = partial_year)) +
+  geom_abline() +
+  xlim(0,2.1) +
+  facet_wrap(&quot;model&quot;) +
+  labs(title = &quot;Log-linear and XGBoost predictions by incident rate&quot;,
+        subtitle = &quot;(Training data only)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-36-1.png" width="672" /></p>
+<pre class="r"><code>ct_train_aug %&gt;%
+  ggplot(aes(y = llm.pred, x = xgb.pred)) +
+  geom_point(aes(size = officer_count, alpha = partial_year)) +
+  geom_abline() +
+  xlim(.3, 1) +
+  labs(title = &quot;Log-linear predictions by XGBoost predictions&quot;,
+        subtitle = &quot;(Training data only)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-36-2.png" width="672" />
+Here we see that that the ML model is far more conservative than the log linear
+model, never making predictions outside of the band <span class="math inline">\([.35,1]\)</span>, though the two models are pretty tightly correlated.</p>
+<p>Next, let’s find out what the XGBoost model is seeing that the linear models are missing, by first taking a look at variable importance.</p>
+<pre class="r"><code>library(vip)
+library(gridExtra)
+grid.arrange(
+  vip(fit_llm %&gt;% extract_fit_engine()) + 
+    labs(title = &quot;Log-linear model vip&quot;),
+  vip(fit_xgb %&gt;% extract_fit_engine()) + 
+    labs(title = &quot;XGBoost model vip&quot;),
+  ncol = 2
+)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-37-1.png" width="672" />
+The ML model didn’t find much use for the variables omitted from our linear models, but it does rate <code>r_asian</code> more highly. Let’s see if we can find out where <code>fit_xgb</code> is making better predictions than <code>fit_llm</code> by breaking the training
+set down by the top three variables, <code>r_asian</code>, <code>household_median_income</code>, and <code>northern_nj</code>:</p>
+<pre class="r"><code>tbl &lt;- ct_train_aug %&gt;%
+  mutate(region = if_else(northern_nj, &quot;NORTH&quot;, &quot;SOUTH&quot;),
+         income = if_else(household_median_income &lt; 89000, &quot;LOW&quot;, &quot;HIGH&quot;),
+         r_asian = case_when(
+           r_asian &lt; .023 ~ &quot;LOW&quot;,
+           r_asian &lt; .064 ~ &quot;MEDIUM&quot;,
+           TRUE ~ &quot;HIGH&quot;
+         )) %&gt;%
+  group_by(r_asian, region, income) %&gt;%
+  summarize(count = n(),
+            rate.mean = weighted.mean(incident_rate_per_officer,
+                                      as.double(officer_years)),
+            llm.mean = weighted.mean(abs(llm.pred), 
+                                     as.double(officer_years)),
+            xgb.mean = weighted.mean(abs(xgb.pred), 
+                                     as.double(officer_years)),
+            llm.mae = weighted.mean(abs(llm.pred-incident_rate_per_officer), 
+                                    as.double(officer_years)),
+            xgb.mae = weighted.mean(abs(xgb.pred-incident_rate_per_officer), 
+                                    as.double(officer_years)),
+            .groups=&quot;drop&quot;
+  ) %&gt;%
+  arrange(xgb.mae - llm.mae)</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-39">Table 9: </span>Mean Average Error of Log-linear and XGBoost model across several categories
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+r_asian
+</th>
+<th style="text-align:left;">
+region
+</th>
+<th style="text-align:left;">
+income
+</th>
+<th style="text-align:right;">
+count
+</th>
+<th style="text-align:right;">
+rate.mean
+</th>
+<th style="text-align:right;">
+llm.mean
+</th>
+<th style="text-align:right;">
+xgb.mean
+</th>
+<th style="text-align:right;">
+llm.mae
+</th>
+<th style="text-align:right;">
+xgb.mae
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:left;">
+SOUTH
+</td>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.540
+</td>
+<td style="text-align:right;">
+1.089
+</td>
+<td style="text-align:right;">
+0.745
+</td>
+<td style="text-align:right;">
+0.549
+</td>
+<td style="text-align:right;">
+0.228
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MEDIUM
+</td>
+<td style="text-align:left;">
+SOUTH
+</td>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:right;">
+0.441
+</td>
+<td style="text-align:right;">
+0.674
+</td>
+<td style="text-align:right;">
+0.608
+</td>
+<td style="text-align:right;">
+0.245
+</td>
+<td style="text-align:right;">
+0.179
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MEDIUM
+</td>
+<td style="text-align:left;">
+NORTH
+</td>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:right;">
+0.706
+</td>
+<td style="text-align:right;">
+0.677
+</td>
+<td style="text-align:right;">
+0.723
+</td>
+<td style="text-align:right;">
+0.207
+</td>
+<td style="text-align:right;">
+0.170
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:left;">
+NORTH
+</td>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:right;">
+0.593
+</td>
+<td style="text-align:right;">
+0.632
+</td>
+<td style="text-align:right;">
+0.644
+</td>
+<td style="text-align:right;">
+0.188
+</td>
+<td style="text-align:right;">
+0.157
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:left;">
+SOUTH
+</td>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:right;">
+0.686
+</td>
+<td style="text-align:right;">
+0.635
+</td>
+<td style="text-align:right;">
+0.616
+</td>
+<td style="text-align:right;">
+0.357
+</td>
+<td style="text-align:right;">
+0.331
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MEDIUM
+</td>
+<td style="text-align:left;">
+SOUTH
+</td>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:right;">
+21
+</td>
+<td style="text-align:right;">
+1.053
+</td>
+<td style="text-align:right;">
+0.991
+</td>
+<td style="text-align:right;">
+0.903
+</td>
+<td style="text-align:right;">
+0.321
+</td>
+<td style="text-align:right;">
+0.296
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:left;">
+NORTH
+</td>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:right;">
+55
+</td>
+<td style="text-align:right;">
+0.476
+</td>
+<td style="text-align:right;">
+0.455
+</td>
+<td style="text-align:right;">
+0.475
+</td>
+<td style="text-align:right;">
+0.163
+</td>
+<td style="text-align:right;">
+0.163
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MEDIUM
+</td>
+<td style="text-align:left;">
+NORTH
+</td>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:right;">
+35
+</td>
+<td style="text-align:right;">
+0.455
+</td>
+<td style="text-align:right;">
+0.452
+</td>
+<td style="text-align:right;">
+0.510
+</td>
+<td style="text-align:right;">
+0.172
+</td>
+<td style="text-align:right;">
+0.174
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:left;">
+SOUTH
+</td>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:right;">
+0.692
+</td>
+<td style="text-align:right;">
+0.694
+</td>
+<td style="text-align:right;">
+0.614
+</td>
+<td style="text-align:right;">
+0.272
+</td>
+<td style="text-align:right;">
+0.274
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:left;">
+NORTH
+</td>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+0.768
+</td>
+<td style="text-align:right;">
+0.770
+</td>
+<td style="text-align:right;">
+0.798
+</td>
+<td style="text-align:right;">
+0.173
+</td>
+<td style="text-align:right;">
+0.190
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:left;">
+NORTH
+</td>
+<td style="text-align:left;">
+HIGH
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+0.354
+</td>
+<td style="text-align:right;">
+0.474
+</td>
+<td style="text-align:right;">
+0.518
+</td>
+<td style="text-align:right;">
+0.173
+</td>
+<td style="text-align:right;">
+0.204
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:left;">
+SOUTH
+</td>
+<td style="text-align:left;">
+LOW
+</td>
+<td style="text-align:right;">
+55
+</td>
+<td style="text-align:right;">
+1.123
+</td>
+<td style="text-align:right;">
+1.008
+</td>
+<td style="text-align:right;">
+0.912
+</td>
+<td style="text-align:right;">
+0.345
+</td>
+<td style="text-align:right;">
+0.387
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>labeller = as_labeller(
+  c(&quot;LOW&quot; = &quot;Low Asian density&quot;, &quot;MEDIUM&quot; = &quot;Medium Asian density&quot;, 
+    &quot;HIGH&quot; = &quot;High Asian density&quot;,
+    &quot;NORTH&quot; = &quot;North Jersey&quot;, &quot;SOUTH&quot; = &quot;South Jersey&quot;)
+)
+ct_train_aug %&gt;%
+  mutate(region = if_else(northern_nj, &quot;NORTH&quot;, &quot;SOUTH&quot;),
+         r_asian = factor(case_when(
+           r_asian &lt; .023 ~ &quot;LOW&quot;,
+           r_asian &lt; .064 ~ &quot;MEDIUM&quot;,
+           TRUE ~ &quot;HIGH&quot;
+         )),
+         r_asian = fct_relevel(r_asian, &quot;LOW&quot;, &quot;MEDIUM&quot;, &quot;HIGH&quot;),
+         xgb_v_llm =
+           abs(xgb.pred - incident_rate_per_officer) -
+           abs(llm.pred - incident_rate_per_officer)) %&gt;%
+  ggplot(aes(x = household_median_income, y = incident_rate_per_officer,
+             color = xgb_v_llm)) +
+  geom_point(aes(size = officer_count, alpha = partial_year)) +
+  geom_smooth(aes(weight = as.double(officer_years)), method = &quot;lm&quot;, se = FALSE,
+              color = &quot;grey&quot;) +
+  annotate(&quot;rect&quot;, xmin = 0, xmax = 250000, ymin = .37, ymax = 1, 
+           alpha = .1, fill = &quot;green&quot;) +
+  scale_color_gradient2(low = &quot;red&quot;, mid = &quot;white&quot;, high = &quot;blue&quot;,
+                        limits = c(-.3, .3), oob = squish) +
+  scale_x_continuous(labels = label_number(suffix = &quot;K&quot;, scale = .001)) +
+  ylim(0, 2.2) +
+  facet_grid(rows = vars(region), cols = vars(r_asian), labeller = labeller) +
+  theme(legend.position = &quot;none&quot;) +
+  labs(title = &quot;Model performance by Asian population density, region and income&quot;,
+       subtitle = &quot;Red = ML model better, Blue = Log-linear model better&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-40-1.png" width="672" /></p>
+<p>(The green bar represents the prediction range for the ML model)</p>
+<p>General conclusions that we can draw from this table and graph:</p>
+<ul>
+<li>Household income becomes less important as the Asian population density increases.</li>
+<li>The log-linear model performs best relative to the ML model when the Asian population density is low.</li>
+<li>The log-linear model does better with high incident rates in South Jersey and low rates in North Jersey.</li>
+<li>Conversely, the ML model does better with low incident rates rates in South Jersey and high incident rates in North Jersey.</li>
+</ul>
+<p>The South Jersey, low-income, low-Asian-density sector is particularly
+interesting:</p>
+<ul>
+<li>It has the highest mean rate of use of force per officer (1.12).</li>
+<li>It has the highest mean prediction for both ML (1.008) and log-linear models (.912).</li>
+<li>It is where the log-linear model (.345 MAE) has its best performance relative to ML model (.387 MAE).</li>
+<li>It has the highest MAE for the ML model in an absolute sense.</li>
+<li>It contains 6 of the 10 cases where the ML model outperforms the log-linear model.</li>
+<li>It contains 6 of the 10 cases where the log-linear model outperforms the ML model.</li>
+</ul>
+<p>We could plausibly gain a marginal improvement in the linear models by adding some
+interaction terms between these three variables, but we will not pursue this here.</p>
+</div>
+</div>
+<div id="agency-models" class="section level2">
+<h2>Agency models</h2>
+<p>Let us now see what can be gained by considering the <em>agency</em> predictors.
+Our approach will be to take the residuals from the log-linear model from the previous section, and try to build a model for the residuals in terms of the
+agency predictors.</p>
+<div id="linear-agency-models" class="section level3">
+<h3>Linear agency models</h3>
+<p>Let’s start very simply with a linear model. First we set up the table
+with the residuals added.</p>
+<pre class="r"><code>ct_train_agcy &lt;-
+  bind_cols(
+    ct_train,
+    wf_llm %&gt;% fit(ct_train) %&gt;% predict(ct_train) %&gt;% rename(llm.pred = .pred),
+  ) %&gt;%
+  mutate(llm.resid = incident_rate_per_officer - llm.pred)</code></pre>
+<p>Now we set up a linear model of the residual in terms of the agency predictors.</p>
+<pre class="r"><code>mod_agcy_lm &lt;- linear_reg()
+agency_predictors &lt;- ct_train_agcy %&gt;%
+  select(officer_mean_age:officer_r_race_na) %&gt;% names()
+recipe_agcy_lm &lt;- recipe(llm.resid ~ ., data = ct_train_agcy) %&gt;% 
+  step_rm(-llm.resid,                         # Outcome
+          -officer_years,                     # Case weights
+          -all_of(agency_predictors))         # Predictors
+
+wf_agcy_lm &lt;- workflow() %&gt;%
+  add_model(mod_agcy_lm) %&gt;%
+  add_recipe(recipe_agcy_lm) %&gt;%
+  add_case_weights(officer_years)
+
+fit_agcy_lm &lt;- wf_agcy_lm %&gt;%
+  fit(ct_train_agcy)
+
+tbl &lt;- fit_agcy_lm %&gt;% tidy()</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-43">Table 10: </span>Log Linear residuals ~ agency predictors
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+term
+</th>
+<th style="text-align:right;">
+estimate
+</th>
+<th style="text-align:right;">
+std.error
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Intercept)
+</td>
+<td style="text-align:right;">
+0.621
+</td>
+<td style="text-align:right;">
+0.536
+</td>
+<td style="text-align:right;">
+1.158
+</td>
+<td style="text-align:right;">
+0.248
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_mean_age
+</td>
+<td style="text-align:right;">
+-0.006
+</td>
+<td style="text-align:right;">
+0.011
+</td>
+<td style="text-align:right;">
+-0.534
+</td>
+<td style="text-align:right;">
+0.594
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_male
+</td>
+<td style="text-align:right;">
+0.043
+</td>
+<td style="text-align:right;">
+0.308
+</td>
+<td style="text-align:right;">
+0.139
+</td>
+<td style="text-align:right;">
+0.889
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_white
+</td>
+<td style="text-align:right;">
+-0.442
+</td>
+<td style="text-align:right;">
+0.387
+</td>
+<td style="text-align:right;">
+-1.142
+</td>
+<td style="text-align:right;">
+0.254
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_black
+</td>
+<td style="text-align:right;">
+-0.471
+</td>
+<td style="text-align:right;">
+0.357
+</td>
+<td style="text-align:right;">
+-1.319
+</td>
+<td style="text-align:right;">
+0.188
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_asian
+</td>
+<td style="text-align:right;">
+-1.922
+</td>
+<td style="text-align:right;">
+0.871
+</td>
+<td style="text-align:right;">
+-2.207
+</td>
+<td style="text-align:right;">
+0.028
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_hispanic_or_latino
+</td>
+<td style="text-align:right;">
+-0.316
+</td>
+<td style="text-align:right;">
+0.372
+</td>
+<td style="text-align:right;">
+-0.849
+</td>
+<td style="text-align:right;">
+0.396
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_race_other
+</td>
+<td style="text-align:right;">
+0.199
+</td>
+<td style="text-align:right;">
+1.238
+</td>
+<td style="text-align:right;">
+0.160
+</td>
+<td style="text-align:right;">
+0.873
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_race_na
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+NA
+</td>
+</tr>
+</tbody>
+</table>
+<p>The model is not promising. It has <span class="math inline">\(p=.423\)</span> and adjusted <span class="math inline">\(R^2=.0003\)</span>. Log-transforming the <code>officer_r_</code> fields, as we did for the <code>r_</code> fields in the municipal models, does not turn out to be helpful. If we iteratively remove the worst predictor and refit, we arrive at our best linear model, which has a single predictor, <code>officer_r_asian</code>.</p>
+<pre class="r"><code>recipe_agcy_lm_asian &lt;- recipe(llm.resid ~ officer_r_asian + officer_years,
+                               data = ct_train_agcy)
+wf_agcy_lm_asian &lt;- wf_agcy_lm %&gt;%
+  update_recipe(recipe_agcy_lm_asian)
+fit_agcy_lm_asian &lt;- wf_agcy_lm_asian %&gt;%
+  fit(ct_train_agcy)
+tbl &lt;- fit_agcy_lm_asian %&gt;% tidy()</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-45">Table 11: </span>Log Linear residuals ~ officer_r_asian
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+term
+</th>
+<th style="text-align:right;">
+estimate
+</th>
+<th style="text-align:right;">
+std.error
+</th>
+<th style="text-align:right;">
+statistic
+</th>
+<th style="text-align:right;">
+p.value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Intercept)
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+<td style="text-align:right;">
+0.022
+</td>
+<td style="text-align:right;">
+0.872
+</td>
+<td style="text-align:right;">
+0.384
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+officer_r_asian
+</td>
+<td style="text-align:right;">
+-1.433
+</td>
+<td style="text-align:right;">
+0.793
+</td>
+<td style="text-align:right;">
+-1.807
+</td>
+<td style="text-align:right;">
+0.072
+</td>
+</tr>
+</tbody>
+</table>
+<p>This is not a very strong model, but on cross validation it looks worse, as it
+is beaten by the empty model (RMSE .418 vs .417 for the empty model). Visually, it is hard to see how the model could be much improved by non-linear terms without overfitting.</p>
+<pre class="r"><code>ct_train_agcy %&gt;%
+  ggplot(aes(x = officer_r_asian, y = llm.resid)) +
+  geom_point(aes(size = officer_count, alpha = partial_year)) +
+  geom_smooth(aes(weight = as.double(officer_years)), color = &quot;lightyellow&quot;) +
+  scale_x_log10() +
+  theme(legend.position = &quot;bottom&quot;) +
+  ylim(-1, 1.8) + 
+  labs(title = &quot;Log Linear residuals by officer_r_asian&quot;,
+       subtitle = &quot;(Training data only)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-46-1.png" width="672" />
+Let’s now see if we can find a ML algorithm that will turn up anything that we missed.</p>
+</div>
+<div id="ml-agency-models" class="section level3">
+<h3>ML agency models</h3>
+<p>We will use XGBoost again. Here our model and best tune:</p>
+<pre class="r"><code>recipe_agcy_xgb &lt;-
+  recipe(llm.resid ~ ., data = ct_train_agcy) %&gt;%
+  step_rm(GEOID:partial_year, incident_rate_est, population:llm.pred)
+
+mod_agcy_xgb &lt;- boost_tree(
+  trees = 3000,           # nrounds
+  min_n = 14,             # min_child_weight
+  tree_depth = 11,        # max_depth
+  learn_rate = .008,      # eta
+  loss_reduction = 44,    # gamma
+  sample_size = 1,
+  stop_iter = 50          # early_stopping_rounds
+) %&gt;% 
+  set_engine(&quot;xgboost&quot;,
+             alpha = .003,
+             lambda = .003,
+             colsample_bytree = 1,
+             nthread = 12,
+             counts = FALSE) %&gt;%
+  set_mode(&quot;regression&quot;)
+
+wf_agcy_xgb &lt;- workflow() %&gt;%
+  add_model(mod_agcy_xgb) %&gt;%
+  add_recipe(recipe_agcy_xgb) %&gt;%
+  add_case_weights(officer_years)</code></pre>
+<p>Unfortunately this model barely outperforms the empty model (RMSE .416 vs .417 for the empty model, <span class="math inline">\(R^2\)</span> = .03). The top variables in this model are <code>officer_r_asian</code>, which we examined when evaluating linear models, and <code>officer_mean_age</code>.</p>
+<pre class="r"><code>fit_agcy_xgb &lt;- wf_agcy_xgb %&gt;%
+  fit(ct_train_agcy)
+fit_agcy_xgb %&gt;%
+  extract_fit_engine() %&gt;% vip()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-48-1.png" width="672" />
+Here is now <code>fit_agcy_xgb</code> uses <code>officer_mean_age</code>.</p>
+<pre class="r"><code>augment(fit_agcy_xgb, ct_train_agcy) %&gt;%
+  pivot_longer(c(&quot;.pred&quot;, &quot;llm.resid&quot;), 
+               names_to = &quot;residual_type&quot;, 
+               values_to = &quot;residual&quot;) %&gt;%
+  ggplot(aes(x = officer_mean_age, y = residual, color = residual_type)) +
+  geom_point() +
+  scale_color_hue(labels = c(&quot;Predicted&quot;, &quot;Actual&quot;)) +
+  ylim(-1.1, 2) +
+  guides(color = guide_legend(title = &quot;Residual Type&quot;)) +
+  theme(legend.position = &quot;bottom&quot;) +
+  labs(title = &quot;ML model predictions vs officer_mean_age&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-49-1.png" width="672" />
+Possibly there is something going on with younger agencies, but the prediction
+spike in the narrow band around age 36 appears to be an overfit driven
+by a few extreme values.</p>
+<p>In any case, the ML model is barely distinguishable from the empty model.</p>
+</div>
+</div>
+<div id="final-fit" class="section level2">
+<h2>Final fit</h2>
+<p>Having selected the log-linear model, let’s perform a final fit and see
+how it performs against the test data.</p>
+<pre class="r"><code>last_fit_llm &lt;- wf_llm %&gt;%
+  last_fit(ct_split)
+tbl &lt;- last_fit_llm %&gt;%
+  collect_metrics()</code></pre>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-51">Table 12: </span>Log-linear model applied to test data
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+.metric
+</th>
+<th style="text-align:left;">
+.estimator
+</th>
+<th style="text-align:right;">
+.estimate
+</th>
+<th style="text-align:left;">
+.config
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+rmse
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.395
+</td>
+<td style="text-align:left;">
+Preprocessor1_Model1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+rsq
+</td>
+<td style="text-align:left;">
+standard
+</td>
+<td style="text-align:right;">
+0.217
+</td>
+<td style="text-align:left;">
+Preprocessor1_Model1
+</td>
+</tr>
+</tbody>
+</table>
+<p>The RMSE (.395) is a little better than the cross validated RMSE on the training set, but the <span class="math inline">\(R^2\)</span> (.217) is a bit worse.</p>
+</div>
+</div>
+<div id="conclusions" class="section level1">
+<h1>Conclusions</h1>
+<ul>
+<li>Using a log-linear model of the use-of-force rate for municipal agencies, we can account for a bit above 20% of the variance in terms of household median income, several racial demographic factors, and a North Jersey regional flag.</li>
+<li>After accounting for the municipal factors with the log-linear model, essentially no additional variance can be explained by agency diversity factors.</li>
+</ul>
+</div>
+<div id="next" class="section level1">
+<h1>Next</h1>
+<p>In the next post, we will look at outliers and interpretations of the log-linear municipal model.</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>Based on 2021 use of force incidents. For department with a full year of data, <code>incident_rate_est</code> is just <code>incident_count</code>. For agencies with only a partial year of data, we divide by <code>partial_year</code>, which is itself an estimate. See <a href="/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/">Part II</a> for details.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+<li id="fn2"><p>Before settling on xgboost, we used <a href="https://docs.h2o.ai/h2o/latest-stable/h2o-docs/automl.html">h2o AutoML</a> to do an initial search. The top performing models tended to be GBMs or stacked models. They did not perform as well as our best xgboost tune.<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
