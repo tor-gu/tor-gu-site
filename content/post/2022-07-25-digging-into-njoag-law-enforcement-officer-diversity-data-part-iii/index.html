@@ -234,7 +234,7 @@ northern_nj_counties &lt;- c(&quot;Bergen County&quot;, &quot;Essex County&quot;
   &quot;Hunterdon County&quot;, &quot;Middlesex County&quot;, &quot;Morris County&quot;, &quot;Passaic County&quot;,
   &quot;Somerset County&quot;, &quot;Sussex County&quot;, &quot;Union County&quot;, &quot;Warren County&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" />
-There are <a href="https://en.wikipedia.org/wiki/North_Jersey">other definitions</a> of the North Jersey cultural region. Our definition is on the expansive side, including three northernmost border counties, Hunterdon, Somerset and Middlesex, and comprises about 62% of the population.</p>
+There are <a href="https://en.wikipedia.org/wiki/North_Jersey">other definitions</a> of the North Jersey cultural region. Our definition is on the expansive side, including the three northernmost border counties, Hunterdon, Somerset and Middlesex, and comprises about 62% of the population.</p>
 <p>Here is how we construct our new combined table, <code>ct</code>. Note that we mark
 <code>officer_years</code> as type <code>tidymodels::importance_weights</code>.</p>
 <pre class="r"><code>library(tidymodels)
@@ -2389,11 +2389,11 @@ is beaten by the empty model (RMSE .418 vs .417 for the empty model). Visually, 
   labs(title = &quot;Log Linear residuals by officer_r_asian&quot;,
        subtitle = &quot;(Training data only)&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-46-1.png" width="672" />
-Let’s now see if we can find a ML algorithm that will turn up anything that we missed.</p>
+Let’s now see if we can find an ML algorithm that will turn up anything that we missed.</p>
 </div>
 <div id="ml-agency-models" class="section level3">
 <h3>ML agency models</h3>
-<p>We will use XGBoost again. Here our model and best tune:</p>
+<p>We will use XGBoost again. Here is our model and best tune:</p>
 <pre class="r"><code>recipe_agcy_xgb &lt;-
   recipe(llm.resid ~ ., data = ct_train_agcy) %&gt;%
   step_rm(GEOID:partial_year, incident_rate_est, population:llm.pred)
@@ -2520,7 +2520,7 @@ Preprocessor1_Model1
 <div class="footnotes footnotes-end-of-document">
 <hr />
 <ol>
-<li id="fn1"><p>Based on 2021 use of force incidents. For department with a full year of data, <code>incident_rate_est</code> is just <code>incident_count</code>. For agencies with only a partial year of data, we divide by <code>partial_year</code>, which is itself an estimate. See <a href="/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/">Part II</a> for details.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+<li id="fn1"><p>Based on 2021 use of force incidents. For departments with a full year of data, <code>incident_rate_est</code> is just <code>incident_count</code>. For agencies with only a partial year of data, we divide by <code>partial_year</code>, which is itself an estimate. See <a href="/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/">Part II</a> for details.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
 <li id="fn2"><p>Before settling on xgboost, we used <a href="https://docs.h2o.ai/h2o/latest-stable/h2o-docs/automl.html">h2o AutoML</a> to do an initial search. The top performing models tended to be GBMs or stacked models. They did not perform as well as our best xgboost tune.<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
 </ol>
 </div>

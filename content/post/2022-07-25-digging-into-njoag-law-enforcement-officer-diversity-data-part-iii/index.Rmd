@@ -158,7 +158,7 @@ counties(state = "NJ", class = "sf") %>%
     panel.grid.major = element_line(color = "lightblue")
   )
 ```
-There are [other definitions](https://en.wikipedia.org/wiki/North_Jersey) of the North Jersey cultural region. Our definition is on the expansive side, including three northernmost border counties, Hunterdon, Somerset and Middlesex, and comprises about 62% of the population.
+There are [other definitions](https://en.wikipedia.org/wiki/North_Jersey) of the North Jersey cultural region. Our definition is on the expansive side, including the three northernmost border counties, Hunterdon, Somerset and Middlesex, and comprises about 62% of the population.
 
 Here is how we construct our new combined table, `ct`. Note that we mark
 `officer_years` as type `tidymodels::importance_weights`.
@@ -203,7 +203,7 @@ Our training set has 295 rows. 100 rows have been reserved as test data.
 
 ## A note on our model outcome variable, `incident_rate_per_officer`
 Before we begin building the models, let's pause a moment to consider our 
-model output variable, `incident_rate_per_officer`, which is  `incident_rate_est` divided by `officer_count`.  The value `incident_rate_est` represents our estimate for the annual rate of use of force incidents per year for each agency.^[Based on 2021 use of force incidents. For department with a full year of data, `incident_rate_est` is just `incident_count`. For agencies with only a partial year of data, we divide by `partial_year`, which is itself an estimate. See [Part II](/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/) for details.] We use the per-officer rate rather than the per-resident rate, because `incident_rate_est` is more strongly correlated with `officer_count` than population.  But is `incident_rate_per_officer` really independent of `officer_count`?
+model output variable, `incident_rate_per_officer`, which is  `incident_rate_est` divided by `officer_count`.  The value `incident_rate_est` represents our estimate for the annual rate of use of force incidents per year for each agency.^[Based on 2021 use of force incidents. For departments with a full year of data, `incident_rate_est` is just `incident_count`. For agencies with only a partial year of data, we divide by `partial_year`, which is itself an estimate. See [Part II](/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/) for details.] We use the per-officer rate rather than the per-resident rate, because `incident_rate_est` is more strongly correlated with `officer_count` than population.  But is `incident_rate_per_officer` really independent of `officer_count`?
 
 In our training data, the two value *are* correlated, but only at $p=.11$
 ```{r message=FALSE, warning=FALSE}
@@ -703,10 +703,10 @@ ct_train_agcy %>%
   labs(title = "Log Linear residuals by officer_r_asian",
        subtitle = "(Training data only)")
 ```
-Let's now see if we can find a ML algorithm that will turn up anything that we missed.
+Let's now see if we can find an ML algorithm that will turn up anything that we missed.
 
 ### ML agency models
-We will use XGBoost again. Here our model and best tune:
+We will use XGBoost again. Here is our model and best tune:
 ```{r}
 recipe_agcy_xgb <-
   recipe(llm.resid ~ ., data = ct_train_agcy) %>%
