@@ -1,0 +1,55 @@
+---
+title: Don't Do What Donny Don't Does
+subtitle: Donny Don't!
+author: Tor
+date: '2022-07-29'
+slug: don-t-do-what-donny-don-t-does
+categories: []
+tags:
+  - R
+---
+
+
+
+<div id="donny-dont" class="section level3">
+<h3>Donny, don’t!</h3>
+<pre class="r"><code>big_ints &lt;- list(
+  1:10 %&gt;% bit64::as.integer64(),
+  11:20 %&gt;% bit64::as.integer64()
+)</code></pre>
+<pre><code>## [[1]]
+## integer64
+##  [1] 1  2  3  4  5  6  7  8  9  10
+## 
+## [[2]]
+## integer64
+##  [1] 11 12 13 14 15 16 17 18 19 20</code></pre>
+<pre class="r"><code>big_ints %&gt;% unlist()</code></pre>
+<pre><code>##  [1] 4.940656e-324 9.881313e-324 1.482197e-323 1.976263e-323 2.470328e-323
+##  [6] 2.964394e-323 3.458460e-323 3.952525e-323 4.446591e-323 4.940656e-323
+## [11] 5.434722e-323 5.928788e-323 6.422853e-323 6.916919e-323 7.410985e-323
+## [16] 7.905050e-323 8.399116e-323 8.893182e-323 9.387247e-323 9.881313e-323</code></pre>
+</div>
+<div id="dont-donny-dont" class="section level3">
+<h3>Don’t, Donny, don’t!</h3>
+<pre class="r"><code>dates &lt;- list(
+  runif(3, 0, 10000) %&gt;% lubridate::as_date(), 
+  runif(3, 0, 10000) %&gt;% lubridate::as_date()
+)</code></pre>
+<pre><code>## [[1]]
+## [1] &quot;1992-06-12&quot; &quot;1990-04-04&quot; &quot;1994-07-16&quot;
+## 
+## [[2]]
+## [1] &quot;1993-04-14&quot; &quot;1981-05-13&quot; &quot;1981-04-15&quot;</code></pre>
+<pre class="r"><code>dates %&gt;% unlist()</code></pre>
+<pre><code>## [1] 8198.940 7398.387 8962.279 8504.193 4150.349 4122.656</code></pre>
+</div>
+<div id="donny-do" class="section level3">
+<h3>Donny do</h3>
+<pre class="r"><code>big_ints %&gt;% purrr::reduce(c)</code></pre>
+<pre><code>## integer64
+##  [1] 1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20</code></pre>
+<pre class="r"><code>dates %&gt;% purrr::reduce(c)</code></pre>
+<pre><code>## [1] &quot;1992-06-12&quot; &quot;1990-04-04&quot; &quot;1994-07-16&quot; &quot;1993-04-14&quot; &quot;1981-05-13&quot;
+## [6] &quot;1981-04-15&quot;</code></pre>
+</div>

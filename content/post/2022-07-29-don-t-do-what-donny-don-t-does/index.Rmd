@@ -1,0 +1,50 @@
+---
+title: Don't Do What Donny Don't Does
+subtitle: Donny Don't!
+author: Tor
+date: '2022-07-29'
+slug: don-t-do-what-donny-don-t-does
+categories: []
+tags:
+  - R
+---
+
+### Donny, don't!
+```{r echo=FALSE, message=FALSE}
+library(magrittr)
+```
+```{r}
+big_ints <- list(
+  1:10 %>% bit64::as.integer64(),
+  11:20 %>% bit64::as.integer64()
+)
+```
+```{r echo=FALSE}
+big_ints
+```
+```{r}
+big_ints %>% unlist()
+```
+
+### Don't, Donny, don't!
+```{r}
+dates <- list(
+  runif(3, 0, 10000) %>% lubridate::as_date(), 
+  runif(3, 0, 10000) %>% lubridate::as_date()
+)
+```
+```{r echo=FALSE}
+dates
+```
+```{r}
+dates %>% unlist()
+```
+
+### Donny do
+```{r}
+big_ints %>% purrr::reduce(c)
+dates %>% purrr::reduce(c)
+```
+
+
+
