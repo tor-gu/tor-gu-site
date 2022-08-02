@@ -60,8 +60,8 @@ output:
 <blockquote>
 <p><strong>Across municipal police departments, after accounting for municipal data, is there a relationship between <em>law enforcement officer diversity</em> and the <em>per-officer use of force rate</em>?</strong></p>
 </blockquote>
-<p>The perhaps somewhat surprising answer is, for the most part, <strong>no</strong>. More precisely, we find that, after accounting for municipal household median income, racial demographics, and a regional factor (North Jersey vs South Jersey), there is no significant correlation between the 2021 per-officer rate of use of force on the one hand and officer median age, officer gender ratio, and the ratio of white, Black or Hispanic officers. It is possible that there is a relationship between the ratio of Asian officers and the use of force rate, but the evidence is weak.</p>
-<p>But as it turns out, the problem of finding a connection between police diversity and use of force is not so easy. Evidence in the existing literature for such a relationship is frequently described as “mixed”. Here is a sampling:</p>
+<p>The perhaps somewhat surprising answer is, for the most part, <strong>no</strong>. More precisely, we find that, after accounting for municipal household median income, racial demographics, and a regional factor (North Jersey vs South Jersey), there is no significant correlation between the 2021 per-officer rate of use of force on the one hand and officer median age, officer gender ratio, and the ratio of white, Black or Hispanic officers on the other. It is possible that there is a relationship between the ratio of Asian officers and the use of force rate, but the evidence is weak.</p>
+<p>But, as it turns out, the problem of finding a connection between police diversity and use of force is not so easy. Evidence in the existing literature for such a relationship is frequently described as “mixed”. Here is a sampling:</p>
 <ul>
 <li><a href="https://onlinelibrary.wiley.com/doi/epdf/10.1111/1541-0072.t01-1-00009">Smith (2003)</a>: “The findings show that more diversified departments do not have significantly lower levels of police-caused homicides.”</li>
 <li><a href="https://journals.sagepub.com/doi/abs/10.1177/0011128708316977">Hickman and Piquero (2008)</a>: “Minority representation was unrelated to [use of force] complaint rates nor to the percentage of complaints sustained.”</li>
@@ -89,7 +89,7 @@ includes:</p>
 <li>Officer mean age</li>
 <li>Officer race and ethnicity</li>
 </ul>
-<p>Rather than jumping to our final models, we will explore several models, though we will not recapitulate all the tuning and feature pruning. We will be using the <a href="https://www.tidymodels.org/">tidymodels</a> idiom for building recipes and doing cross validation.</p>
+<p>Rather than jumping to our final models, we will explore several alternatives, though we will not recapitulate all the tuning and feature pruning. We will be using the <a href="https://www.tidymodels.org/">tidymodels</a> idiom for building recipes and doing cross validation.</p>
 </div>
 <div id="packages-used-in-this-post" class="section level2">
 <h2>Packages used in this post</h2>
@@ -209,6 +209,17 @@ Variable Importance Plots
 0.3.2
 </td>
 </tr>
+<tr>
+<td style="text-align:left;">
+xgboost
+</td>
+<td style="text-align:left;">
+Extreme Gradient Boosting
+</td>
+<td style="text-align:left;">
+1.6.0.1
+</td>
+</tr>
 </tbody>
 </table>
 <p>This is not a tutorial for using these packages, but all the R code used to generate the plots, tables and models will be included.</p>
@@ -219,7 +230,7 @@ install_github(&quot;tor-gu/njoagleod&quot;)</code></pre>
 </div>
 <div id="preparing-the-training-data" class="section level1">
 <h1>Preparing the training data</h1>
-<p>In <a href="/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/">Part II</a> we assembled a <code>combined_table</code> of municipal agencies including most of the data we will need. A script to recreate this table (along with <code>nj_municipality_map</code>) may be found <a href="https://gist.github.com/tor-gu/c03164e55d851b2e31c87ea5b5b6591b">here</a>. Before using this data, we need to do some additional preparation. We need to</p>
+<p>In <a href="/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/">Part II</a> we assembled a <code>combined_table</code> of municipal agencies including most of the data we will need. A script to recreate this table (along with <code>nj_municipality_map</code>) may be found <a href="https://gist.github.com/tor-gu/c03164e55d851b2e31c87ea5b5b6591b">here</a>. Before using this data, we need to do some additional preparation. We need to:</p>
 <ul>
 <li>Add a column for <code>incident_rate_per_officer</code>. This will be the outcome value in our models.</li>
 <li>Add a column for <code>officer_years</code>, the product of <code>officer_count</code> and <code>partial_year</code>. This will be the case weight in our models.</li>

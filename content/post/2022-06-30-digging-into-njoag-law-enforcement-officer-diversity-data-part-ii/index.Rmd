@@ -15,6 +15,12 @@ subtitle: Assembling a combined table
 knitr::opts_chunk$set(echo = TRUE)
 options(kableExtra.html.bsTable = TRUE)
 options(digits=2)
+renv::use(
+  "tor-gu/njoaguof@v1.4.0",
+  "tor-gu/njoagleod@v1.1.3",
+  "tidyverse@1.3.1",
+  "sf@1.0-7"
+)
 ```
 
 This is Part II of a series exploring the Law Enforcement Officer Diversity dataset released by the NJ OAG. Part I is [here](/2022/06/25/digging-into-njoag-law-enforcement-officer-diversity-data-part-i/).

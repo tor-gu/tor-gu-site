@@ -21,6 +21,12 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 options(kableExtra.html.bsTable = TRUE)
 options(digits = 2)
+renv::use(
+  "tor-gu/njoaguof@v1.4.0",
+  "tor-gu/njoagleod@v1.1.3",
+  "tidyverse@1.3.1",
+  "xgboost@1.6.0.1"
+)
 ```
 
 ```{r echo=FALSE, message=FALSE}
@@ -52,9 +58,9 @@ So, refining the question a bit, we want to ask:
 
 > **Across municipal police departments, after accounting for municipal data, is there a relationship between *law enforcement officer diversity* and the *per-officer use of force rate*?**
 
-The perhaps somewhat surprising answer is, for the most part, **no**.  More precisely, we find that, after accounting for municipal household median income, racial demographics, and a regional factor (North Jersey vs South Jersey), there is no significant correlation between the 2021 per-officer rate of use of force on the one hand and officer median age, officer gender ratio, and the ratio of white, Black or Hispanic officers. It is possible that there is a relationship between the ratio of Asian officers and the use of force rate, but the evidence is weak.
+The perhaps somewhat surprising answer is, for the most part, **no**.  More precisely, we find that, after accounting for municipal household median income, racial demographics, and a regional factor (North Jersey vs South Jersey), there is no significant correlation between the 2021 per-officer rate of use of force on the one hand and officer median age, officer gender ratio, and the ratio of white, Black or Hispanic officers on the other. It is possible that there is a relationship between the ratio of Asian officers and the use of force rate, but the evidence is weak.
 
-But as it turns out, the problem of finding a connection between police diversity and use of force is not so easy. Evidence in the existing literature for such a relationship is frequently described as "mixed". Here is a sampling:
+But, as it turns out, the problem of finding a connection between police diversity and use of force is not so easy. Evidence in the existing literature for such a relationship is frequently described as "mixed". Here is a sampling:
 
 - [Smith (2003)](https://onlinelibrary.wiley.com/doi/epdf/10.1111/1541-0072.t01-1-00009):  "The findings show that more diversified departments do not have significantly lower levels of police-caused homicides."
 - [Hickman and Piquero (2008)](https://journals.sagepub.com/doi/abs/10.1177/0011128708316977): "Minority representation was unrelated to [use of force] complaint rates nor to the percentage of complaints sustained."
@@ -86,7 +92,7 @@ includes:
   - Officer mean age
   - Officer race and ethnicity
 
-Rather than jumping to our final models, we will explore several models, though we will not recapitulate all the tuning and feature pruning. We will be using the [tidymodels](https://www.tidymodels.org/) idiom for building recipes and doing cross validation.
+Rather than jumping to our final models, we will explore several alternatives, though we will not recapitulate all the tuning and feature pruning. We will be using the [tidymodels](https://www.tidymodels.org/) idiom for building recipes and doing cross validation.
 
 ## Packages used in this post
 
@@ -101,7 +107,7 @@ pkgkbl <- function(packages) {
     rename(Package = ...1, Title = ...2, Version = ...3) %>%
     kbl(caption = NULL)
 }
-c("njoagleod", "njoaguof", "gridExtra", "sf", "tidyverse", "tidymodels", "tidycensus", "tigris",  "vip") %>%  pkgkbl()
+c("njoagleod", "njoaguof", "gridExtra", "sf", "tidyverse", "tidymodels", "tidycensus", "tigris",  "vip", "xgboost") %>%  pkgkbl()
 ```
 
 This is not a tutorial for using these packages, but all the R code used to generate the plots, tables and models will be included.
@@ -117,7 +123,7 @@ install_github("tor-gu/njoagleod")
 ```{r echo=FALSE}
 load(here::here("static", "data", "use_of_force_data.Rda"))
 ```
-In [Part II](/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/) we assembled a `combined_table` of municipal agencies including most of the data we will need. A script to recreate this table (along with `nj_municipality_map`) may be found [here](https://gist.github.com/tor-gu/c03164e55d851b2e31c87ea5b5b6591b). Before using this data, we need to do some additional preparation. We need to
+In [Part II](/2022/06/30/digging-into-njoag-law-enforcement-officer-diversity-data-part-ii/) we assembled a `combined_table` of municipal agencies including most of the data we will need. A script to recreate this table (along with `nj_municipality_map`) may be found [here](https://gist.github.com/tor-gu/c03164e55d851b2e31c87ea5b5b6591b). Before using this data, we need to do some additional preparation. We need to:
 
 - Add a column for `incident_rate_per_officer`. This will be the outcome value in our models.
 - Add a column for `officer_years`, the product of `officer_count` and `partial_year`. This will be the case weight in our models.
