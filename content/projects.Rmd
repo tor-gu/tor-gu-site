@@ -24,7 +24,7 @@ This data package is a cleaned-up version of the NJ OAG Use of Force dataset ava
 This data package is a cleaned-up version of the NJ OAG Law Enforcement Officer Diversity dataset available from https://www.njoag.gov/policerecruiting/
 
 ## NJ OAG Use Of Force Data Explorer
-[NJOAGUOF Data Explorer](https://bumble.tor-gu.com/njoaguof/)
+[NJOAGUOF Data Explorer](https://shiny.tor-gu.com/njoaguof/)
 
 This is a simple [R/Shiny](https://shiny.rstudio.com/) dashboard application to illustrate the use of
 of the [NJOAGUOF](https://github.com/tor-gu/njoaguof/blob/main/README.md) data package.  The source code is [here](https://github.com/tor-gu/njoaguofdash).
