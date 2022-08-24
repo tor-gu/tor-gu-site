@@ -13,18 +13,32 @@ This is an [R/Shiny](https://shiny.rstudio.com/) application that uses a novel v
 
 The source code is available [here](https://github.com/tor-gu/streakexplorer).
 
-## NJ OAG Use Of Force Data Package for R
-[NJOAGUOF](https://github.com/tor-gu/njoaguof/blob/main/README.md)
-
-This data package is a cleaned-up version of the NJ OAG Use of Force dataset available from https://www.njoag.gov/force/.
-
-## NJ OAG Law Enforcement Officer Diversity Data Package for R
-[NJOAGLEOD](https://github.com/tor-gu/njoagleod#readme)
-
-This data package is a cleaned-up version of the NJ OAG Law Enforcement Officer Diversity dataset available from https://www.njoag.gov/policerecruiting/
-
 ## NJ OAG Use Of Force Data Explorer
 [NJOAGUOF Data Explorer](https://shiny.tor-gu.com/njoaguof/)
 
 This is a simple [R/Shiny](https://shiny.rstudio.com/) dashboard application to illustrate the use of
 of the [NJOAGUOF](https://github.com/tor-gu/njoaguof/blob/main/README.md) data package.  The source code is [here](https://github.com/tor-gu/njoaguofdash).
+
+## Data Packages
+
+#### NJ OAG Use Of Force Data Package for R
+[NJOAGUOF](https://github.com/tor-gu/njoaguof/#readme)
+
+This data package is a cleaned-up version of the NJ OAG Use of Force dataset available from https://www.njoag.gov/force/.
+
+#### NJ OAG Law Enforcement Officer Diversity Data Package for R
+[NJOAGLEOD](https://github.com/tor-gu/njoagleod#readme)
+
+This data package is a cleaned-up version of the NJ OAG Law Enforcement Officer Diversity dataset available from https://www.njoag.gov/policerecruiting/
+
+#### NJ Elections Data Package for R
+
+[NJELECTIONS](https://github.com/tor-gu/njelections/#readme)
+
+This is a data package for R containing the results of statewide elections in NJ, from 2004 to 2021.
+
+#### NJ Municipaliites Data Package for R
+
+[NJMUNICIPALITIES](https://github.com/tor-gu/njmunicipalities#readme)
+
+This is a data package for R that contains every county and municipality in New Jersey, from 2000 to 2021.
