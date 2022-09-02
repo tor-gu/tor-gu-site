@@ -1,0 +1,740 @@
+---
+title: Incorrect Official Election Results in New Jersey
+author: Tor
+date: '2022-09-01'
+slug: incorrect-official-election-results-in-new-jersey
+categories: []
+tags:
+  - R
+  - NJELECTIONS
+  - Egg Harbor City
+  - Egg Harbor township
+  - Estell Manor
+  - Trenton
+  - Robbinsville
+subtitle: At the municipal level, official results are sometimes wildly off
+---
+
+<script src="{{< blogdown/postref >}}index_files/kePrint/kePrint.js"></script>
+<link href="{{< blogdown/postref >}}index_files/lightable/lightable.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/bsTable/bootstrapTable.min.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/bsTable/bootstrapTable.js"></script>
+
+
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>While building and working with the <a href="https://github.com/tor-gu/njelections">njelections</a> package, I’ve found that a number of official results at the municipal level are probably (and in some cases, clearly) wrong <a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> In each case, the error appears to be that the results from alphabetically adjacent towns are transposed. So far, I’ve found three examples of this:</p>
+<ul>
+<li>In the <a href="#nj-governor-race-egg-harbor-city-egg-harbor-township-and-estell-manor-city">2005 NJ Governor race</a>, the results for Egg Harbor City, Egg Harbor Township, and Estell Manor appear to be scrambled.</li>
+<li>In the <a href="#us-senate-race-egg-harbor-city-and-egg-harbor-township">2006 US Senate rate</a>, the results for Egg Harbor City and Egg Harbor Township appear to be transposed.</li>
+<li>In the <a href="#nj-governors-race-trenton-and-robbinsville">2013 NJ Governor race</a>, the results for Trenton and Robbinsville appear to be partially transposed.</li>
+</ul>
+<p>In the following sections, I’ll explain why I think the official results are wrong, and how I suspect they should be fixed.</p>
+</div>
+<div id="egg-harbor-city-egg-harbor-township-and-estell-manor-2005-2006" class="section level2">
+<h2>Egg Harbor City, Egg Harbor Township, and Estell Manor, 2005-2006</h2>
+<p>Before I get to the incorrect results in 2005 and 2006, let’s take a look at how these three towns usually vote. Here are the <a href="https://nj.gov/state/elections/assets/pdf/election-results/2009/2009-governor_results-atlantic.pdf">official results</a> for the <em>2009</em> NJ Governor’s race, which I have no reason to suspect are incorrect:</p>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-3">Table 1: </span>2009 NJ Governor’s race, official results, with 2010 population
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:right;">
+population
+</th>
+<th style="text-align:left;">
+office
+</th>
+<th style="text-align:right;">
+Democratic
+</th>
+<th style="text-align:right;">
+Republican
+</th>
+<th style="text-align:right;">
+Third Party
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2009
+</td>
+<td style="text-align:left;">
+Egg Harbor City
+</td>
+<td style="text-align:right;">
+4243
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+576
+</td>
+<td style="text-align:right;">
+520
+</td>
+<td style="text-align:right;">
+85
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2009
+</td>
+<td style="text-align:left;">
+Egg Harbor township
+</td>
+<td style="text-align:right;">
+43323
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+4236
+</td>
+<td style="text-align:right;">
+5795
+</td>
+<td style="text-align:right;">
+729
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2009
+</td>
+<td style="text-align:left;">
+Estell Manor
+</td>
+<td style="text-align:right;">
+1735
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+264
+</td>
+<td style="text-align:right;">
+451
+</td>
+<td style="text-align:right;">
+74
+</td>
+</tr>
+</tbody>
+</table>
+<p>Egg Harbor township is by far the largest town, and has larger vote totals across the board. Egg Harbor city is larger than Estell Manor and more Democratic.</p>
+<div id="nj-governor-race-egg-harbor-city-egg-harbor-township-and-estell-manor-city" class="section level3">
+<h3>2005 NJ Governor race: Egg Harbor City, Egg Harbor township, and Estell Manor City</h3>
+<p>Now let’s take a look at the 2005 Governor’s race. Here are the <a href="https://nj.gov/state/elections/assets/pdf/election-results/2005/2005governor&#39;s_results-atlantic.pdf">official results</a>:</p>
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-4">Table 2: </span>2005 NJ Governor’s race, official results
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:left;">
+office
+</th>
+<th style="text-align:right;">
+Democratic
+</th>
+<th style="text-align:right;">
+Republican
+</th>
+<th style="text-align:right;">
+Third Party
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+Egg Harbor City
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+4202
+</td>
+<td style="text-align:right;">
+409
+</td>
+<td style="text-align:right;">
+309
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+Egg Harbor township
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+532
+</td>
+<td style="text-align:right;">
+382
+</td>
+<td style="text-align:right;">
+40
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+Estell Manor
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+291
+</td>
+<td style="text-align:right;">
+4187
+</td>
+<td style="text-align:right;">
+78
+</td>
+</tr>
+</tbody>
+</table>
+<p>Clearly, these results cannot be correct. The Republican vote in Estell Manor, for example, exceeds the population by a factor of more than 2.</p>
+My suspicion is that the results are shuffled, and the correct results should look like this:
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-5">Table 3: </span>2005 NJ Governor’s race, possible corrections
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:right;">
+Democratic
+</th>
+<th style="text-align:right;">
+Republican
+</th>
+<th style="text-align:right;">
+Third Party
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+Egg Harbor City
+</td>
+<td style="text-align:right;">
+532
+</td>
+<td style="text-align:right;">
+409
+</td>
+<td style="text-align:right;">
+78
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+Egg Harbor township
+</td>
+<td style="text-align:right;">
+4202
+</td>
+<td style="text-align:right;">
+4187
+</td>
+<td style="text-align:right;">
+309
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+Estell Manor
+</td>
+<td style="text-align:right;">
+291
+</td>
+<td style="text-align:right;">
+382
+</td>
+<td style="text-align:right;">
+40
+</td>
+</tr>
+</tbody>
+</table>
+<p>The corrected third party vote for the two smaller towns is a bit of guesswork. The third party vote in Egg Harbor City usually runs ahead of the third party vote in the smaller Estell Manor, so this guess is reasonable. On the other hand, I have lumped together all third party candidates, under the assumption that they were swapped as a group, which is far from certain.</p>
+</div>
+<div id="us-senate-race-egg-harbor-city-and-egg-harbor-township" class="section level3">
+<h3>2006 US Senate Race: Egg Harbor City and Egg Harbor township</h3>
+Now let’s turn to the 2006 Senate rate. Here are the <a href="https://nj.gov/state/elections/assets/pdf/election-results/2006/2006-senate-atlantic-final.pdf">official results</a>:
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-6">Table 4: </span>2006 US Senate race, official results
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:left;">
+office
+</th>
+<th style="text-align:right;">
+Democratic
+</th>
+<th style="text-align:right;">
+Republican
+</th>
+<th style="text-align:right;">
+Third Party
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Egg Harbor City
+</td>
+<td style="text-align:left;">
+Senate
+</td>
+<td style="text-align:right;">
+4385
+</td>
+<td style="text-align:right;">
+4938
+</td>
+<td style="text-align:right;">
+230
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Egg Harbor township
+</td>
+<td style="text-align:left;">
+Senate
+</td>
+<td style="text-align:right;">
+609
+</td>
+<td style="text-align:right;">
+531
+</td>
+<td style="text-align:right;">
+34
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Estell Manor
+</td>
+<td style="text-align:left;">
+Senate
+</td>
+<td style="text-align:right;">
+305
+</td>
+<td style="text-align:right;">
+371
+</td>
+<td style="text-align:right;">
+20
+</td>
+</tr>
+</tbody>
+</table>
+<p>In this case, the Estell Manor results seem very plausible, while the results from Egg Harbor City and Egg Harbor township seem to have swapped.</p>
+I suspect the correct results should look like this:
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-7">Table 5: </span>2006 US Senate race, possible corrections
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:left;">
+office
+</th>
+<th style="text-align:right;">
+Democratic
+</th>
+<th style="text-align:right;">
+Republican
+</th>
+<th style="text-align:right;">
+Third Party
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Egg Harbor City
+</td>
+<td style="text-align:left;">
+Senate
+</td>
+<td style="text-align:right;">
+609
+</td>
+<td style="text-align:right;">
+531
+</td>
+<td style="text-align:right;">
+34
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Egg Harbor township
+</td>
+<td style="text-align:left;">
+Senate
+</td>
+<td style="text-align:right;">
+4385
+</td>
+<td style="text-align:right;">
+4938
+</td>
+<td style="text-align:right;">
+230
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+Estell Manor
+</td>
+<td style="text-align:left;">
+Senate
+</td>
+<td style="text-align:right;">
+305
+</td>
+<td style="text-align:right;">
+371
+</td>
+<td style="text-align:right;">
+20
+</td>
+</tr>
+</tbody>
+</table>
+<p>Evidently, these three towns are difficult to keep straight! One might wonder if this is the only time the results have been scrambled. Fortunately, 2005 (Governor) and 2006 (Senate) seem to be the only election years from between 2004 and 2021 which stand out as having a <em>clear</em> mistake:
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+</div>
+<div id="nj-governors-race-trenton-and-robbinsville" class="section level2">
+<h2>2013 NJ Governor’s race, Trenton and Robbinsville</h2>
+<div id="initial-results" class="section level3">
+<h3>Initial results</h3>
+New Jersey released the official results for Mercer County twice. Here is how the results were <a href="https://nj.gov/state/elections/assets/pdf/election-results/2013/2013-general-election-results-governor-mercer.pdf">initially released</a>:
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-10">Table 6: </span>2013 Governor race, initial official results (later revised)
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:left;">
+office
+</th>
+<th style="text-align:right;">
+Democratic
+</th>
+<th style="text-align:right;">
+Republican
+</th>
+<th style="text-align:right;">
+Third Party
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:left;">
+Robbinsville
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+9179
+</td>
+<td style="text-align:right;">
+2102
+</td>
+<td style="text-align:right;">
+136
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:left;">
+Trenton
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+1228
+</td>
+<td style="text-align:right;">
+3035
+</td>
+<td style="text-align:right;">
+77
+</td>
+</tr>
+</tbody>
+</table>
+<p>The Democratic vote stands out as clearly incorrect – Trenton is large and Democratic, while Robbinsville is small and Republican. But the Republican and Third party votes are also out of character.
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+<div id="revised-results" class="section level3">
+<h3>Revised results</h3>
+In the <a href="https://nj.gov/state/elections/assets/pdf/election-results/2013/2013-general-election-results-governor-mercer-0131.pdf">revised (and current) official results</a>, the Democratic votes for Trenton and Robbinsville are swapped:
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-12">Table 7: </span>2013 Governor race, official results (revised)
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:left;">
+office
+</th>
+<th style="text-align:right;">
+Democratic
+</th>
+<th style="text-align:right;">
+Republican
+</th>
+<th style="text-align:right;">
+Third Party
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:left;">
+Robbinsville
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+1228
+</td>
+<td style="text-align:right;">
+2102
+</td>
+<td style="text-align:right;">
+136
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:left;">
+Trenton
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+9179
+</td>
+<td style="text-align:right;">
+3035
+</td>
+<td style="text-align:right;">
+77
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="proposed-changes" class="section level3">
+<h3>Proposed changes</h3>
+I suspect that in the initial results, <em>all</em> of the vote counts – not just the Democratic ones – in Robbinsville and Trenton were transposed. Here are my suggested fixes:
+<table class="kable table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<caption>
+<span id="tab:unnamed-chunk-13">Table 8: </span>2013 Governor race, possible corrections
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+municipality
+</th>
+<th style="text-align:left;">
+office
+</th>
+<th style="text-align:right;">
+Democratic
+</th>
+<th style="text-align:right;">
+Republican
+</th>
+<th style="text-align:right;">
+Third Party
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:left;">
+Robbinsville
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+1228
+</td>
+<td style="text-align:right;">
+3035
+</td>
+<td style="text-align:right;">
+77
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:left;">
+Trenton
+</td>
+<td style="text-align:left;">
+Governor
+</td>
+<td style="text-align:right;">
+9179
+</td>
+<td style="text-align:right;">
+2102
+</td>
+<td style="text-align:right;">
+136
+</td>
+</tr>
+</tbody>
+</table>
+<p>If you make this change, the 2013 vote for both towns is more in character for with previous and subsequent elections:
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+</div>
+<div id="robbinsville-township-name-change" class="section level3">
+<h3>Robbinsville township name change</h3>
+<p>In the case of Robbinsville and Trenton, there is a fairly plausible mechanism for how the the votes could have been transposed: Between the 2009 and 2013 NJ Governor elections, the township changed its official name from Washington to Robbinsville, and as a result, Trenton and Washington/Robbinsville switched positions in a alphabetic listing of Mercer County towns.</p>
+<p>If you think that is too trivial a consideration to affect a the official tally of the NJ Governor’s election, I would like to direct your attention to the PDFs of the official results.</p>
+<p>Here is how that list appears in <a href="https://nj.gov/state/elections/assets/pdf/election-results/2009/2009-governor_results-mercer.pdf">2009</a>. Notice that the list is alphabetized, with “Washington Twp.” appearing just after “Trenton City”. All townships have the “Twp.” suffix.</p>
+<p><img src="images/mercer_2009.png" /></p>
+<p>And now the same list in <a href="https://nj.gov/state/elections/assets/pdf/election-results/2013/2013-general-election-results-governor-mercer-0131.pdf">2013</a>. You would expect to see “Robbinsville Twp.” just before “Trenton City”. Instead, “Twp.” is <em>prepended</em> to “Robbinsville”, allowing the township to appear in the same position in the list, just <em>after</em> Trenton.</p>
+<p><img src="images/mercer_2013.png" /></p>
+<p>Anyway, I have sympathy. Dealing with heterogeneous data sets from multiple source is hard.</p>
+</div>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>Currently, the <a href="https://github.com/tor-gu/njelections">njelections</a> package always uses official results.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
