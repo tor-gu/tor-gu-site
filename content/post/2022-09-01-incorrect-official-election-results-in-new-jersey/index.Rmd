@@ -247,4 +247,6 @@ And now the same list in [2013](https://nj.gov/state/elections/assets/pdf/electi
 
 ![](images/mercer_2013.png)
 
+Lucky thing it wasn't a borough. 
+
 Anyway, I have sympathy. Dealing with heterogeneous data sets from multiple sources is hard.
