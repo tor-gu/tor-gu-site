@@ -125,7 +125,7 @@ results_2006_corrected |> kbl("2006 US Senate race, possible corrections")
 
 ```
 
-Evidently, these three towns are difficult to keep straight! One might wonder if this is the only time the results have been scrambled. Fortunately, 2005 (Governor) and 2006 (Senate) seem to be the only election years from between 2004 and 2021 which stand out as having a *clear* mistake:
+Evidently, these three towns are difficult to keep straight! One might wonder if this is the only time the results have been scrambled. Fortunately, 2005 (Governor) and 2006 (Senate) seem to be the only election years between 2004 and 2021 which stand out as having a *clear* mistake:
 ```{r echo = FALSE}
 egg_estell_summary |>
   filter(party %in% c("Democratic", "Republican")) |>
@@ -196,6 +196,7 @@ t_r_summary |> filter(year == 2013) |>
   pivot_wider(names_from="party", values_from="vote") |>
   kbl("2013 Governor race, official results (revised)")
 ```
+This is more plausible, but leaves the at least somewhat out-of-character Republican and third-party vote in place.
 
 ### Proposed changes
 I suspect that in the initial results, *all* of the vote counts -- not just the Democratic ones -- in Robbinsville and Trenton were transposed. Here are my suggested fixes:
@@ -212,6 +213,7 @@ t_r_summary_fixed |> filter(year == 2013) |>
   pivot_wider(names_from="party", values_from="vote") |>
   kbl("2013 Governor race, possible corrections")
 ```
+
 If you make this change, the 2013 vote for both towns is more in character for with previous and subsequent elections:
 ```{r echo=FALSE}
 bind_rows(
@@ -245,4 +247,4 @@ And now the same list in [2013](https://nj.gov/state/elections/assets/pdf/electi
 
 ![](images/mercer_2013.png)
 
-Anyway, I have sympathy. Dealing with heterogeneous data sets from multiple source is hard.
+Anyway, I have sympathy. Dealing with heterogeneous data sets from multiple sources is hard.
