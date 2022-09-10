@@ -41,4 +41,4 @@ This is a data package for R containing the results of statewide elections in NJ
 
 [NJMUNICIPALITIES](https://github.com/tor-gu/njmunicipalities#readme)
 
-This is a data package for R that contains every county and municipality in New Jersey, from 2000 to 2021.
+This is a data package for R that contains every county and municipality in New Jersey, from 2000 to 2022.
