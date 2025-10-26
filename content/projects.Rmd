@@ -1,24 +1,11 @@
 ---
 title: Current Projects
 author: Tor
-date: '2022-05-01'
+date: '2025-10-26'
 slug: projects
 categories: []
 tags: []
 ---
-## Baseball Streak Explorer
-[Streak Explorer](https://shiny.tor-gu.com/streak-explorer) 
-
-This is an [R/Shiny](https://shiny.rstudio.com/) application that uses a novel visualization for comparing hot and cold streaks of Major League Baseball teams.
-
-The source code is available [here](https://github.com/tor-gu/streakexplorer).
-
-## NJ OAG Use Of Force Data Explorer
-[NJOAGUOF Data Explorer](https://shiny.tor-gu.com/njoaguof/)
-
-This is a simple [R/Shiny](https://shiny.rstudio.com/) dashboard application to illustrate the use of
-of the [NJOAGUOF](https://github.com/tor-gu/njoaguof/blob/main/README.md) data package.  The source code is [here](https://github.com/tor-gu/njoaguofdash).
-
 ## Data Packages
 
 #### NJ OAG Use Of Force Data Package for R
