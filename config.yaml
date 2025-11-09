@@ -10,6 +10,8 @@ ignoreFiles:
   - _cache$
   - \.knit\.md$
   - \.utf8\.md$
+  - (^|/)renv$
+  - renv\\.lock$
 permalinks:
   post: /:year/:month/:day/:slug/
 menu:
@@ -23,9 +25,6 @@ menu:
     - name: GitHub
       url: https://github.com/tor-gu
       weight: 3
-    - name: Twitter
-      url: https://twitter.com/tor__gu
-      weight: 4
     - name: LinkedIn
       url: https://www.linkedin.com/in/tor-gunston-857077165
       weight: 5

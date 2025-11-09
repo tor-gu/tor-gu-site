@@ -4,4 +4,6 @@
 .Ruserdata
 .Rprofile
 .hugo_build.lock
-public/
+/public/
+.DS_Store,
+Thumbs.db
