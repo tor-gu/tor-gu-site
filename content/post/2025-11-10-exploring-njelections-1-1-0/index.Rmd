@@ -1,0 +1,339 @@
+---
+title: Exploring njelections 1.1.0
+author: ''
+date: '2025-11-10'
+slug: exploring-njelections-1-1-0
+categories: []
+tags:
+  - NJELECTIONS
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(kableExtra.html.bsTable = TRUE)
+options(ggrepel.max.overlaps = Inf)
+options(digits = 2)
+renv::use(
+  "tor-gu/njelections@v1.1.0",
+  "tor-gu/njmunicipalities@v1.3.0",
+  "tidyverse@1.3.2",
+  "tigris@2.2.1",
+  "ggrepel"
+)
+```
+
+# Summary
+Recently, I published version 1.1.0 of the [njelections](https://github.com/tor-gu/njelections) data package for R, including election results up through 2024 ^[The [njelections](https://github.com/tor-gu/njelections) package uses [official election results](https://www.nj.gov/state/elections/election-information-results.shtml) published by the the New Jersey Division of Elections. The detailed results of the 2025 statewide elections are not yet published. The 2024 official election results were not published until January of 2025.]. I'm going to dig into the new data a little bit.
+
+# Comparing 2007-2012 with 2019-2024
+
+Democrats  received 55.6% of the two-party vote in statewide elections in the six-year period 2019-2024 (two presidential elections, two senate elections, and one gubernatorial election). This is a 1.5% decrease of their share in the corresponding six year span in the previous 12-year election cycle (2007-2012), when Democrats received 57% of the vote.  
+
+First, let's take a look at which parts of the state are more Republican, and which are more Democratic.
+
+(The R code for the maps in this section can be found [here](https://gist.github.com/tor-gu/3888beb2b4a43afdf0cc40ea96cd9008). I'm using the [tigris](https://github.com/walkerke/tigris) package to get the map of New Jersey along with [njelections](https://github.com/tor-gu/njelections).)
+
+```{r message=FALSE, echo=FALSE}
+library(tigris)
+library(njmunicipalities)
+library(njelections)
+library(glue)
+library(dplyr)
+library(purrr)
+library(ggplot2)
+library(stringr)
+# Set our starting end ending points
+final_year <- 2024
+first_year <- final_year - 17
+
+# Get the couny names from njmunicipalities
+county_names <- njmunicipalities::counties |> pull(county)
+
+# Get the map of NJ with tigris
+options(tigris_use_cache = TRUE)
+nj_municipality_map <- county_names %>%
+  map_df( ~ county_subdivisions("NJ", county = ., class = "sf")) |>
+  filter(ALAND > 0)
+
+# We will use Republican share of two-party share of vote
+# (TPSOV) as our basic metric.
+
+# Get statewide TPSOV by six-year half-cycle
+tpsov_sw <- election_statewide |>
+  filter(year >= first_year & year <= final_year) |>
+  filter(party %in% c("Democratic", "Republican")) |>
+  select(year, party, office, vote_sw = vote) |>
+  # Aggregate party vote over half-cycles
+  mutate(half_cycle = as.integer((year-first_year)/6)) |>
+  group_by(half_cycle, party) |>
+  summarize(vote_sw=sum(vote_sw), .groups="drop") |>
+  # Compute TPSOV
+  group_by(half_cycle) |>
+  mutate(tpsov_sw = vote_sw/sum(vote_sw)) |>
+  ungroup() |>
+  # Select just the Republican
+  filter(party == "Republican")
+
+# Now do the same for municipalities
+muni_tpsov <- election_by_municipality |>
+  filter(party %in% c("Democratic", "Republican")) |>
+  select(year, office, GEOID, party, vote) |>
+  # Aggregate the Princetons, and account for changing
+  # names and GEOIDs
+  mutate(GEOID = if_else(GEOID == PRINCETON_TWP_GEOID,
+                         PRINCETON_BORO_GEOID,
+                         GEOID)) |>
+  # Aggregate Pine Valley and Pine Hill, and account for changing GEOIDs
+  mutate(GEOID = if_else(GEOID == PINE_VALLEY_BORO_GEOID,
+                         PINE_HILL_BORO_GEOID,
+                         GEOID)) |>
+  left_join(get_geoid_cross_references(final_year, first_year:final_year),
+            by=c("year", "GEOID")) |>
+  left_join(get_municipalities(final_year),
+            by=c("GEOID_ref"="GEOID")) |>
+  select(-GEOID, GEOID=GEOID_ref) |>
+  # Aggregate party vote over half-cycles
+  mutate(half_cycle = as.integer((year-first_year)/6)) |>
+  group_by(half_cycle, GEOID, party) |>
+  summarize(vote=sum(vote), .groups="drop") |>
+  mutate(half_cycle_name = paste0(first_year + half_cycle * 6, "-", first_year + half_cycle * 6 + 5)) |>
+  # Compute TPSOV
+  group_by(half_cycle, GEOID) |>
+  mutate(tpsov = vote/sum(vote)) |>
+  ungroup() |>
+  # Select just the Republican
+  filter(party == "Republican") |>
+  # Get rid of the middle half-cycle
+  filter(half_cycle_name != glue("{first_year + 6}-{final_year - 6}")) |>
+  # Add in municipal names, and statewide TPSOV
+  left_join(get_municipalities(final_year), by="GEOID") |>
+  left_join(tpsov_sw) |>
+  mutate(tpsov_delta = tpsov - tpsov_sw)
+
+# Also create a table of the change in vote from
+# {first_year}-{first_year+5} to {final_year - 5}-{final_year}
+muni_tpsov_delta <- muni_tpsov |>
+  arrange(half_cycle) |>
+  group_by(GEOID, party) |>
+  mutate(tpsov_delta = tpsov - lag(tpsov)) |>
+  ungroup() |>
+  filter(!is.na(tpsov_delta))
+
+# Now glue our election data to the map
+map_with_values <- nj_municipality_map |>
+  left_join(muni_tpsov, by="GEOID")
+# Let's get a label for the the most extreme
+# municipalities
+labels <- map_with_values |>
+  split(map_with_values$half_cycle) |>
+  map(filter, vote/tpsov > 2000) |>
+  map(~bind_rows(
+    slice_min(.x, n=4, order_by=tpsov),
+    slice_max(.x, n=4, order_by=tpsov)
+  )
+  ) |>
+  map_df(arrange, desc(INTPTLAT)) |>
+  # Filter so we don't put the same label on both maps
+  group_by(GEOID) |>
+  filter(row_number() == 1) |>
+  ungroup()
+
+# Plot the map
+plot_tpsov <- map_with_values |>
+  ggplot() +
+  geom_sf(aes(fill=tpsov_delta, geometry=geometry, size=.2)) +
+  scale_size_identity() +
+  scale_fill_gradient2(
+    na.value = "lightgrey",
+    low = "blue",
+    high = "red",
+    mid = "lightgrey",
+    midpoint = 0,
+    limits = c(-.4,.4),
+    oob = scales::squish,
+    breaks = c(-.4, 0, .4),
+    labels=c("More Democratic", "State Average", "More Republican"),
+    name="Margin"
+  ) +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.background = element_rect(fill = "lightblue"),
+    panel.grid.major = element_line(color = "lightblue"),
+    legend.position = "bottom",
+    legend.key.width = unit(2, "cm"),
+    legend.title = element_blank(),
+    plot.title = element_text(hjust=0.5),
+    plot.subtitle = element_text(hjust=0.5),
+    plot.title.position = "panel"
+  ) +
+  facet_wrap("half_cycle_name") +
+  labs(title=str_wrap("Two party share of vote in NJ, relative to statewide average", width = 50),
+       subtitle = "Elections for Governor, Senate and President",
+       caption="Source: NJ Division of Elections")
+plot_tpsov
+```
+
+Next, let's highlight the changes in these two maps: which towns got comparatively more Democratic, and which became comparatively more Republican. In this map, you can see how the northern and Philadelphia suburbs shifted Democratic (relative to the state average), while most of South Jersey and the more urban parts of North Jersey shifted Republican.
+
+
+```{r echo=FALSE, message=FALSE}
+# Now glue our election data to the map
+map_with_values_delta <- nj_municipality_map |>
+  left_join(muni_tpsov_delta, by="GEOID")
+# Get labels for extreme values
+labels_delta <- map_with_values_delta |>
+  filter(vote/tpsov > 2000) |>
+  slice_max(n=8, order_by=abs(tpsov_delta)) |>
+  arrange(desc(INTPTLAT))
+
+# We will get the statewide average shift for centering
+sw_shift <- tpsov_sw |>
+  filter(half_cycle != 1) |>
+  pull(tpsov_sw) |>
+  diff()
+shift_desc <- ifelse(
+  sw_shift < 0,
+  glue("Democrats +{round(-sw_shift,3)}"),
+  glue("Republicans +{round(sw_shift,3)}")
+)
+
+# Plot our map
+plot_tpsov_delta <- map_with_values_delta |>
+  ggplot() +
+  geom_sf(aes(fill=tpsov_delta, geometry=geometry, size=.2)) +
+  #ggrepel::geom_label_repel(
+  #  data = labels_delta,
+  #  mapping = aes(label = NAME, geometry = geometry),
+  #  stat = "sf_coordinates",
+  #  nudge_x = -.2,
+  #  nudge_y = .2,
+  #) +
+  scale_size_identity() +
+  scale_fill_gradient2(
+    na.value = "lightgrey",
+    low = "blue",
+    high = "red",
+    mid = "lightgrey",
+    midpoint = sw_shift,
+    limits = c(-.2, .2) + sw_shift,
+    oob = scales::squish,
+    breaks = c(-.2, 0, .2) + sw_shift,
+    labels=c("Democratic shift", glue("Average shift ({shift_desc})"), "Republican shift"),
+  ) +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.background = element_rect(fill = "lightblue"),
+    panel.grid.major = element_line(color = "lightblue"),
+    legend.position = "bottom",
+    legend.key.width = unit(2, "cm"),
+    legend.title = element_blank(),
+    plot.title = element_text(hjust=0.5),
+    plot.subtitle = element_text(hjust=0.5),
+    plot.title.position = "panel",
+  ) +
+  coord_sf() +
+  labs(title=str_wrap(glue(
+    "Shift in share of two-party vote within New Jersey, {first_year}-{first_year + 5} to {final_year - 5}-{final_year}"
+    ), width=50),
+       subtitle = str_wrap("Elections for Governor, Senate and President", width=50),
+       caption="Source: NJ Division of Elections")
+plot_tpsov_delta
+```
+
+# Comparing Kim and Harris in 2024
+In 2024, New Jersey had two statewide races: A US Senate race (Kim/Bashaw) and the Presidental race (Harris/Trump).  Kim ran ahead of Harris statewide by about 1.9% in the two-party vote share. Let's take a look at which parts of the state were strongest for Kim and which were strongest for Harris.
+
+Kim generally did better in the more Democratic areas, but, again, it is the North Jersey suburbs which jumps out at me: Harris did best relative to Kim in exactly the region that has shifted hardest towards Democrats. Kim's old house district, NJ-03, is also shown.
+
+The R code for this map can be found [here](https://gist.github.com/tor-gu/26ece04c44cc8e84532664f079c53dbf).
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyr)
+library(ggrepel)
+# Get a map of congressional district NJ-03
+nj_03_map <- congressional_districts(state="NJ", year=2024) |> filter(GEOID==3403)
+
+# Calculate the statewide Kim - Harris vote share delta
+kim_harris_delta <- election_statewide |>
+  filter(year==2024) |>
+  filter(party %in% c("Democratic", "Republican")) |>
+  select(office, party, vote) |>
+  group_by(office) |>
+  mutate(vote_share=vote/sum(vote)) |>
+  filter(party=="Democratic") |>
+  select(office, vote_share) |>
+  arrange(office) |> # This will put President before Senate
+  pull(vote_share) |> diff()
+
+# Calculate the relative delta of Kim over Harris by municipality
+delta_by_geoid <- election_by_municipality |>
+  filter(year==2024) |>
+  filter(party %in% c("Democratic", "Republican")) |>
+  select(GEOID, office, party, vote) |>
+  group_by(GEOID, office) |>
+  mutate(vote_share=vote/sum(vote)) |>
+  ungroup() |>
+  filter(party=="Democratic") |>
+  select(GEOID, office, vote_share) |>
+  pivot_wider(names_from=office, values_from = vote_share) |>
+  mutate(delta=Senate-President-kim_harris_delta) |>
+  select(GEOID, delta)
+
+# Now glue our election data to the map
+map_with_values <- nj_municipality_map |>
+  left_join(delta_by_geoid, by="GEOID")
+
+# Plot our map
+plot_kim_harris <- map_with_values |>
+  ggplot() +
+  geom_sf(aes(fill=delta, geometry=geometry, size=.2)) +
+  geom_sf(data=nj_03_map, color="darkgreen", fill=NA, aes(geometry=geometry, size=.6)) +
+  ggrepel::geom_label_repel(
+    data=nj_03_map,
+    color="darkgreen",
+    mapping = aes(label = "NJ-03", geometry = geometry),
+    stat = "sf_coordinates",
+    nudge_x = -.5,
+    nudge_y = .2,
+  ) +
+  scale_size_identity() +
+  scale_fill_gradient2(
+    na.value = "lightgrey",
+    low = "purple",
+    high = "green",
+    mid = "lightgrey",
+    midpoint = kim_harris_delta,
+    limits = c(-.05,.05),
+    oob = scales::squish,
+    breaks = c(-.05, 0, .05),
+    labels=c("More Harris", glue("State Average (Kim +{round(kim_harris_delta, 3)})"), "More Kim"),
+    name="Margin"
+  ) +
+  theme(
+    axis.ticks = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.background = element_rect(fill = "lightblue"),
+    panel.grid.major = element_line(color = "lightblue"),
+    legend.position = "bottom",
+    legend.key.width = unit(2, "cm"),
+    legend.title = element_blank(),
+    plot.title = element_text(hjust=0.5),
+    plot.subtitle = element_text(hjust=0.5),
+    plot.title.position = "panel",
+) +
+  labs(title=str_wrap("Relative overperformance of Andy Kim vs. Kamala Harris", width=45),
+       subtitle = str_wrap("Two-party vote share in elections for Senate and President 2024", width=50),
+       caption="Source: NJ Division of Elections")
+
+plot_kim_harris
+```

@@ -1,0 +1,38 @@
+---
+title: Exploring njelections 1.1.0
+author: ''
+date: '2025-11-10'
+slug: exploring-njelections-1-1-0
+categories: []
+tags:
+  - NJELECTIONS
+---
+
+
+
+<div id="summary" class="section level1">
+<h1>Summary</h1>
+<p>Recently, I published version 1.1.0 of the <a href="https://github.com/tor-gu/njelections">njelections</a> data package for R, including election results up through 2024 <a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. I’m going to dig into the new data a little bit.</p>
+</div>
+<div id="comparing-2007-2012-with-2019-2024" class="section level1">
+<h1>Comparing 2007-2012 with 2019-2024</h1>
+<p>Democrats received 55.6% of the two-party vote in statewide elections in the six-year period 2019-2024 (two presidential elections, two senate elections, and one gubernatorial election). This is a 1.5% decrease of their share in the corresponding six year span in the previous 12-year election cycle (2007-2012), when Democrats received 57% of the vote.</p>
+<p>First, let’s take a look at which parts of the state are more Republican, and which are more Democratic.</p>
+<p>(The R code for the maps in this section can be found <a href="https://gist.github.com/tor-gu/3888beb2b4a43afdf0cc40ea96cd9008">here</a>. I’m using the <a href="https://github.com/walkerke/tigris">tigris</a> package to get the map of New Jersey along with <a href="https://github.com/tor-gu/njelections">njelections</a>.)</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+<p>Next, let’s highlight the changes in these two maps: which towns got comparatively more Democratic, and which became comparatively more Republican. In this map, you can see how the northern and Philadelphia suburbs shifted Democratic (relative to the state average), while most of South Jersey and the more urban parts of North Jersey shifted Republican.</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+</div>
+<div id="comparing-kim-and-harris-in-2024" class="section level1">
+<h1>Comparing Kim and Harris in 2024</h1>
+<p>In 2024, New Jersey had two statewide races: A US Senate race (Kim/Bashaw) and the Presidental race (Harris/Trump). Kim ran ahead of Harris statewide by about 1.9% in the two-party vote share. Let’s take a look at which parts of the state were strongest for Kim and which were strongest for Harris.</p>
+<p>Kim generally did better in the more Democratic areas, but, again, it is the North Jersey suburbs which jumps out at me: Harris did best relative to Kim in exactly the region that has shifted hardest towards Democrats. Kim’s old house district, NJ-03, is also shown.</p>
+<p>The R code for this map can be found <a href="https://gist.github.com/tor-gu/26ece04c44cc8e84532664f079c53dbf">here</a>.</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>The <a href="https://github.com/tor-gu/njelections">njelections</a> package uses <a href="https://www.nj.gov/state/elections/election-information-results.shtml">official election results</a> published by the the New Jersey Division of Elections. The detailed results of the 2025 statewide elections are not yet published. The 2024 official election results were not published until January of 2025.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
