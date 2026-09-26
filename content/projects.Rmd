@@ -14,11 +14,6 @@ tags: []
 
 This data package is a cleaned-up version of the NJ OAG Use of Force dataset available from https://www.njoag.gov/force/.
 
-#### NJ OAG Law Enforcement Officer Diversity Data Package for R
-[NJOAGLEOD](https://github.com/tor-gu/njoagleod#readme)
-
-This data package is a cleaned-up version of the NJ OAG Law Enforcement Officer Diversity dataset available from https://www.njoag.gov/policerecruiting/
-
 #### NJ Elections Data Package for R
 
 [NJELECTIONS](https://github.com/tor-gu/njelections/#readme)
