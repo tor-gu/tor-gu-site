@@ -1,11 +1,12 @@
 ---
 title: Current Projects
 author: Tor
-date: '2025-10-26'
+date: '2026-09-26'
 slug: projects
 categories: []
 tags: []
 ---
+
 ## Data Packages
 
 #### NJ OAG Use Of Force Data Package for R
@@ -22,13 +23,13 @@ This data package is a cleaned-up version of the NJ OAG Law Enforcement Officer 
 
 [NJELECTIONS](https://github.com/tor-gu/njelections/#readme)
 
-This is a data package for R containing the results of statewide elections in NJ, from 2004 to 2021.
+This is a data package for R containing the results of statewide elections in NJ, from 2004 to 2025.
 
 #### NJ Municipalities Data Package for R
 
 [NJMUNICIPALITIES](https://github.com/tor-gu/njmunicipalities#readme)
 
-This is a data package for R that contains every county and municipality in New Jersey, from 2000 to 2022.
+This is a data package for R that contains every county and municipality in New Jersey, from 2000 to 2025.
 
 ## APIs
 
@@ -37,4 +38,3 @@ This is a data package for R that contains every county and municipality in New 
 [NJMUNICIPALITIES-API](/apis/njmunicipalities.html)
 
 This is an API that exposes the data in the [NJMUNICIPALITIES data package for R](#nj-municipalities-data-package-for-r). The source code is [here](https://github.com/tor-gu/njmunicipalities-api)
-
