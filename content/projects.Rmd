@@ -14,6 +14,8 @@ tags: []
 
 This data package is a cleaned-up version of the NJ OAG Use of Force dataset available from https://www.njoag.gov/force/.
 
+There is also an [interactive dashboard](https://tor-gu-njoaguofdash.share.connect.posit.cloud/) built to illustrate the package: a map of New Jersey use-of-force reports. The source code is [here](https://github.com/tor-gu/njoaguofdash#readme).
+
 #### NJ Elections Data Package for R
 
 [NJELECTIONS](https://github.com/tor-gu/njelections/#readme)
