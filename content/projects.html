@@ -9,6 +9,18 @@ tags: []
 
 
 
+<div id="tournament-of-albums" class="section level2">
+<h2>Tournament of Albums</h2>
+<p>Obviously, it is extremely important that I be able to rank all the albums
+in my music collection, but I have found it is too difficult to rank them all at once. This is my attempt to do it piecemeal, in small batches,
+with scores aggregated by applying my highly scientific <a href="https://github.com/tor-gu/toa-lambda-score#readme">probabilistic model</a>.</p>
+<p>The <a href="https://toa.tor-gu.com">Tournament of Albums</a> consists of three parts:</p>
+<ul>
+<li>A <a href="https://github.com/tor-gu/toa-web#readme">static web app</a>, served from S3 and CloudFront.</li>
+<li>A <a href="https://github.com/tor-gu/toa-api#readme">read-only API</a>, with one Lambda per endpoint.</li>
+<li>A <a href="https://github.com/tor-gu/toa-data-pipeline#readme">data pipeline</a> that picks up new match results, applies the model, and writes the scores to DynamoDB for the API to serve.</li>
+</ul>
+</div>
 <div id="data-packages" class="section level2">
 <h2>Data Packages</h2>
 <div id="nj-oag-use-of-force-data-package-for-r" class="section level4">
@@ -33,6 +45,6 @@ tags: []
 <div id="nj-municipalities-api" class="section level4">
 <h4>NJ Municipalities API</h4>
 <p><a href="/apis/njmunicipalities.html">NJMUNICIPALITIES-API</a></p>
-<p>This is an API that exposes the data in the <a href="#nj-municipalities-data-package-for-r">NJMUNICIPALITIES data package for R</a>. The source code is <a href="https://github.com/tor-gu/njmunicipalities-api">here</a></p>
+<p>This is an API that exposes the data in the <a href="#nj-municipalities-data-package-for-r">NJMUNICIPALITIES data package for R</a>. The source code is <a href="https://github.com/tor-gu/njmunicipalities-api">here</a>.</p>
 </div>
 </div>

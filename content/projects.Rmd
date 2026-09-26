@@ -7,6 +7,18 @@ categories: []
 tags: []
 ---
 
+## Tournament of Albums
+
+Obviously, it is extremely important that I be able to rank all the albums
+in my music collection, but I have found it is too difficult to rank them all at once. This is my attempt to do it piecemeal, in small batches,
+with scores aggregated by applying my highly scientific [probabilistic model](https://github.com/tor-gu/toa-lambda-score#readme).
+
+The [Tournament of Albums](https://toa.tor-gu.com) consists of three parts:
+
+* A [static web app](https://github.com/tor-gu/toa-web#readme), served from S3 and CloudFront.
+* A [read-only API](https://github.com/tor-gu/toa-api#readme), with one Lambda per endpoint.
+* A [data pipeline](https://github.com/tor-gu/toa-data-pipeline#readme) that picks up new match results, applies the model, and writes the scores to DynamoDB for the API to serve.
+
 ## Data Packages
 
 #### NJ OAG Use Of Force Data Package for R
@@ -34,4 +46,4 @@ This is a data package for R that contains every county and municipality in New 
 
 [NJMUNICIPALITIES-API](/apis/njmunicipalities.html)
 
-This is an API that exposes the data in the [NJMUNICIPALITIES data package for R](#nj-municipalities-data-package-for-r). The source code is [here](https://github.com/tor-gu/njmunicipalities-api)
+This is an API that exposes the data in the [NJMUNICIPALITIES data package for R](#nj-municipalities-data-package-for-r). The source code is [here](https://github.com/tor-gu/njmunicipalities-api).
