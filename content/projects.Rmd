@@ -1,7 +1,7 @@
 ---
 title: Current Projects
 author: Tor
-date: '2026-09-26'
+date: '2026-10-11'
 slug: projects
 categories: []
 tags: []
@@ -38,7 +38,7 @@ This is a data package for R containing the results of statewide elections in NJ
 
 [NJMUNICIPALITIES](https://github.com/tor-gu/njmunicipalities#readme)
 
-This is a data package for R that contains every county and municipality in New Jersey, from 2000 to 2025.
+This is a data package for R that contains every county and municipality in New Jersey, from 2000 to 2026.
 
 ## APIs
 
