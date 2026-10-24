@@ -1,7 +1,7 @@
 ---
 title: Current Projects
 author: Tor
-date: '2026-10-11'
+date: '2026-10-24'
 slug: projects
 categories: []
 tags: []
@@ -47,3 +47,9 @@ This is a data package for R that contains every county and municipality in New 
 [NJMUNICIPALITIES-API](/apis/njmunicipalities.html)
 
 This is an API that exposes the data in the [NJMUNICIPALITIES data package for R](#nj-municipalities-data-package-for-r). The source code is [here](https://github.com/tor-gu/njmunicipalities-api).
+
+#### NJ OAG Use of Force API
+
+[NJOAGUOF-API](/apis/njoaguof.html)
+
+This is an API that exposes the data in the [NJOAGUOF data package for R](#nj-oag-use-of-force-data-package-for-r). The source code is [here](https://github.com/tor-gu/njoaguof-api).
